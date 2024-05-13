@@ -1,6 +1,7 @@
 import re
 import requests
 import streamlit as st
+from io import BytesIO
 from datetime import datetime
 from icalendar import Calendar
 
@@ -18,7 +19,6 @@ legend = {
 }
 filtered_words = {"pA", "pB", "pC", "wyk", "ćw", "klin"}
 
-
 # Helper function to calculate the current week number
 def get_week_number():
     base_date = datetime(2024, 5, 13)
@@ -26,8 +26,7 @@ def get_week_number():
     week_diff = (current_date - base_date).days // 7
     return 617 + week_diff  # Adjusting 617 for 13.05.2023
 
-
-# Function to update and download the calendar
+# Function to update and prepare the calendar for download
 def update_calendar(group):
     # Construct the URL
     week_number = get_week_number()
@@ -71,17 +70,17 @@ def update_calendar(group):
         pattern = r"ul\.\s?[\w\s]+"
         street = re.search(pattern, component["description"])
         if street:
-            component["location"] = "ul. " + street.group()[3:].strip() + ", Poznań, Polska"
+            component["location"] = (
+                "ul. " + street.group()[3:].strip() + ", Poznań, Polska"
+            )
         else:
             component["location"] = "ul. Królowej Jadwigi 27/39, Poznań, Polska"
 
-    # Save the updated calendar to a file
-    filename = f"calendar_{group[-1]}_{week_number}.ics"
-    with open(filename, "wb") as file:
-        file.write(cal.to_ical())
+    # Create an in-memory bytes buffer for the calendar
+    calendar_bytes = BytesIO(cal.to_ical())
+    calendar_bytes.seek(0)  # Ensure the buffer's pointer is at the start
 
-    return filename
-
+    return calendar_bytes, f"calendar_{group[-1]}_{week_number}.ics"
 
 # Streamlit app
 st.set_page_config(page_title="Plan zajęć", page_icon="📅")
@@ -91,11 +90,10 @@ st.title("Fiztoterapia - Plan zajęć")
 group = st.selectbox("Wybierz grupę:", ["grupa A", "grupa B", "grupa C"], index=0)
 
 if group:
-    calendar_file = update_calendar(group)
-    with open(calendar_file, "rb") as file:
-        btn = st.download_button(
-            label="Pobierz",
-            data=file,
-            file_name=calendar_file,
-            mime="text/calendar",
-        )
+    calendar_bytes, calendar_filename = update_calendar(group)
+    st.download_button(
+        label="Pobierz",
+        data=calendar_bytes,
+        file_name=calendar_filename,
+        mime="text/calendar",
+    )
