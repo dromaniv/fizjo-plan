@@ -1,7 +1,6 @@
 import re
 import requests
 import streamlit as st
-from io import BytesIO
 from datetime import datetime
 from icalendar import Calendar
 
@@ -56,11 +55,12 @@ def update_calendar(group):
         abbreviation = summary.split()[0]
         description = summary[len(abbreviation) :].strip()
 
-        if abbreviation[-2] == "p" and abbreviation[-1] == group[-1]:
-            abbreviation = abbreviation[:-2]
-        elif abbreviation[-2] == "p" and abbreviation[-1] != group[-1]:
-            cal.subcomponents.remove(component)
-            continue
+        if abbreviation[-1] in ["A", "B", "C"]:
+            if abbreviation[-2] == "p" and abbreviation[-1] == group[-1]:
+                abbreviation = abbreviation[:-2]
+            elif abbreviation[-2] == "p" and abbreviation[-1] != group[-1]:
+                cal.subcomponents.remove(component)
+                continue
 
         component["summary"] = title + legend.get(abbreviation, abbreviation)
         component["description"] = " ".join(
@@ -76,24 +76,24 @@ def update_calendar(group):
         else:
             component["location"] = "ul. Królowej Jadwigi 27/39, Poznań, Polska"
 
-    # Create an in-memory bytes buffer for the calendar
-    calendar_bytes = BytesIO(cal.to_ical())
-    calendar_bytes.seek(0)  # Ensure the buffer's pointer is at the start
-
-    return calendar_bytes, f"calendar_{group[-1]}_{week_number}.ics"
+    return cal.to_ical(), f"calendar_{group[-1]}_{week_number}.ics"
 
 # Streamlit app
 st.set_page_config(page_title="Plan zajęć", page_icon="📅")
 
-st.title("Fiztoterapia - Plan zajęć")
+st.title("Fizjoterapia - Plan zajęć")
 
 group = st.selectbox("Wybierz grupę:", ["grupa A", "grupa B", "grupa C"], index=0)
 
 if group:
     calendar_bytes, calendar_filename = update_calendar(group)
-    st.download_button(
+    if st.download_button(
         label="Pobierz",
         data=calendar_bytes,
         file_name=calendar_filename,
         mime="text/calendar",
-    )
+    ):
+        st.balloons()
+
+st.divider()
+st.image("https://i.pinimg.com/736x/23/86/e3/2386e3023848e6754b8f0ad9597676a7.jpg")
