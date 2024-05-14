@@ -88,7 +88,7 @@ st.set_page_config(page_title="Plan zajęć", page_icon="📅")
 
 st.title("Fizjoterapia - Plan zajęć")
 
-group = st.selectbox("Wybierz grupę:", ["grupa A", "grupa B", "grupa C"], index=0)
+group = st.selectbox("Wybierz grupę:", ["grupa A", "grupa B", "grupa C"], index=1)
 
 if group:
     calendar_bytes, calendar_filename = get_calendar(group)
