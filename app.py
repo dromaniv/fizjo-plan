@@ -86,7 +86,7 @@ def get_calendar(group):
 # Streamlit app
 st.set_page_config(page_title="Plan zajęć", page_icon="📅")
 
-st.title("Fizjoterapia - Plan zajęć")
+st.title("Fizjoterapia - Plan zajęć 📅")
 
 group = st.selectbox("Wybierz grupę:", ["grupa A", "grupa B", "grupa C"], index=1)
 
