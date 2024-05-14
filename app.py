@@ -88,17 +88,19 @@ st.set_page_config(page_title="Plan zajęć", page_icon="📅")
 
 st.title("Fizjoterapia - Plan zajęć 📅")
 
-group = st.selectbox("Wybierz grupę:", ["grupa A", "grupa B", "grupa C"], index=1)
+group = st.selectbox("Wybierz grupę:", ["Grupa A", "Grupa B", "Grupa C"], index=1)
 
 if group:
     calendar_bytes, calendar_filename = get_calendar(group)
-    st.download_button(
-        label="Pobierz",
-        data=calendar_bytes,
-        file_name=calendar_filename,
-        mime="text/calendar",
-        disabled=calendar_filename[9] != group[-1], 
-    )
+    if calendar_bytes:
+        st.download_button(
+            label="Pobierz",
+            data=calendar_bytes,
+            file_name=calendar_filename,
+            mime="text/calendar"
+        )
+    else:
+        st.error("Coś poszło nie tak, spróbuj ponownie później.")
 
 st.markdown("---")
 st.image("https://i.pinimg.com/736x/23/86/e3/2386e3023848e6754b8f0ad9597676a7.jpg")
