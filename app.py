@@ -92,13 +92,12 @@ group = st.selectbox("Wybierz grupę:", ["grupa A", "grupa B", "grupa C"], index
 
 if group:
     calendar_bytes, calendar_filename = get_calendar(group)
-    if st.download_button(
+    st.download_button(
         label="Pobierz",
         data=calendar_bytes,
         file_name=calendar_filename,
         mime="text/calendar",
-    ):
-        st.balloons()
+    )
 
 st.markdown("---")
 st.image("https://i.pinimg.com/736x/23/86/e3/2386e3023848e6754b8f0ad9597676a7.jpg")
