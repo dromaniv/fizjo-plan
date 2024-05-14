@@ -95,5 +95,5 @@ if group:
     ):
         st.balloons()
 
-st.divider()
+st.markdown("---")
 st.image("https://i.pinimg.com/736x/23/86/e3/2386e3023848e6754b8f0ad9597676a7.jpg")
