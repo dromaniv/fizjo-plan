@@ -18,6 +18,7 @@ legend = {
 }
 filtered_words = {"pA", "pB", "pC", "wyk", "ćw", "klin"}
 
+
 # Helper function to calculate the current week number
 def get_week_number():
     base_date = datetime(2024, 5, 13)
@@ -25,8 +26,9 @@ def get_week_number():
     week_diff = (current_date - base_date).days // 7
     return 617 + week_diff  # Adjusting 617 for 13.05.2023
 
-# Function to update and prepare the calendar for download
-def update_calendar(group):
+
+# Function to get and prepare the calendar for download
+def get_calendar(group):
     # Construct the URL
     week_number = get_week_number()
     url = f"http://web0.awf.poznan.pl/plan/plan.php?type=0&id=88436&cvsfile=true&w={week_number}"
@@ -55,6 +57,7 @@ def update_calendar(group):
         abbreviation = summary.split()[0]
         description = summary[len(abbreviation) :].strip()
 
+        # Handle groups
         if abbreviation[-1] in ["A", "B", "C"]:
             if abbreviation[-2] == "p" and abbreviation[-1] == group[-1]:
                 abbreviation = abbreviation[:-2]
@@ -66,7 +69,8 @@ def update_calendar(group):
         component["description"] = " ".join(
             [word for word in description.split() if word not in filtered_words]
         )
-        # Regex pattern to extract polish street
+
+        # Regex pattern to extract Polish street
         pattern = r"ul\.\s?[\w\s]+"
         street = re.search(pattern, component["description"])
         if street:
@@ -78,6 +82,7 @@ def update_calendar(group):
 
     return cal.to_ical(), f"calendar_{group[-1]}_{week_number}.ics"
 
+
 # Streamlit app
 st.set_page_config(page_title="Plan zajęć", page_icon="📅")
 
@@ -86,7 +91,7 @@ st.title("Fizjoterapia - Plan zajęć")
 group = st.selectbox("Wybierz grupę:", ["grupa A", "grupa B", "grupa C"], index=0)
 
 if group:
-    calendar_bytes, calendar_filename = update_calendar(group)
+    calendar_bytes, calendar_filename = get_calendar(group)
     if st.download_button(
         label="Pobierz",
         data=calendar_bytes,
