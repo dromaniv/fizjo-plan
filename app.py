@@ -97,6 +97,7 @@ if group:
         data=calendar_bytes,
         file_name=calendar_filename,
         mime="text/calendar",
+        disabled=calendar_filename[9] != group[-1], 
     )
 
 st.markdown("---")
