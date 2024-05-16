@@ -16,8 +16,8 @@ legend = {
     "Kin": "Kinezyterapia",
     "Mas": "Masaż",
     "Mffib": "Medycyna fizykalna - fizykoterapia i balneoklimatologia",
+    "Kpfwnin": "Kliniczne podstawy fizjoterapii w neurologii i neurochirurgii",
 }
-filtered_words = {"pA", "pB", "pC", "wyk", "ćw", "klin"}
 
 
 # Helper function to calculate the current week number
@@ -42,22 +42,17 @@ def get_calendar(group, week_number):
     for component in cal.walk("vevent"):
         summary = component.get("summary")
         # Determine the prefix based on the type of class
-        title = ""
         if "wyk" in summary:
-            title = "W - "
             component.add("color", "gray")
         elif "ćw" in summary:
-            title = "ĆW - "
             component.add("color", "red")
         elif "klin" in summary:
-            title = "K - "
             component.add("color", "blue")
         else:
             component.add("color", "darkred")
 
         # Extract the abbreviation and add it to the title
         abbreviation = summary.split()[0]
-        description = summary[len(abbreviation) :].strip()
 
         # Handle groups
         if abbreviation[-1] in ["A", "B", "C"]:
@@ -67,10 +62,8 @@ def get_calendar(group, week_number):
                 cal.subcomponents.remove(component)
                 continue
 
-        component["summary"] = title + legend.get(abbreviation, abbreviation)
-        component["description"] = " ".join(
-            [word for word in description.split() if word not in filtered_words]
-        )
+        component["summary"] = legend.get(abbreviation, abbreviation)
+        component["description"] = summary[len(abbreviation):].strip()
 
         # Regex pattern to extract Polish street
         pattern = r"ul\.\s?[\w\s]+"
