@@ -89,6 +89,9 @@ def get_calendar(week_number, group="Grupa B", english=False):
 # Streamlit app
 st.set_page_config(page_title="Plan zajęć", page_icon="📅")
 
+# Print streamlit version
+st.write(f"Streamlit version: {st.__version__}")
+
 st.title("Fizjoterapia - Plan zajęć 📅")
 
 st.write("Wybierz grupę ćwiczeniową:")
