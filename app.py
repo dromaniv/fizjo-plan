@@ -11,8 +11,7 @@ legend = {
     "Fkwdurwoit": "Fizjoterapia kliniczna w dysfunkcjach układu ruchu w ortopedii i traumatologii",
     "Fkwdurwr": "Fizjoterapia kliniczna w dysfunkcjach układu ruchu w reumatologii",
     "Fkwcwwkik": "Fizjoterapia kliniczna w chorobach wewnętrznych w kardiologii i kardiochirurgii",
-    "Ja1A": "Język angielski",
-    "Ja1B+2+3": "Język angielski",
+    "Ja": "Język angielski",
     "Kin": "Kinezyterapia",
     "Mas": "Masaż",
     "Mffib": "Medycyna fizykalna - fizykoterapia i balneoklimatologia",
@@ -54,11 +53,10 @@ def get_calendar(week_number, group="Grupa B", english=False):
         # Extract the abbreviation and add it to the title
         abbreviation = summary.split()[0]
 
-        # Handle English
-        if abbreviation == "Ja1A" and not english == "Grupa A":
-            cal.subcomponents.remove(component)
-            continue
-        elif abbreviation == "Ja1B+2+3" and not english == "Grupa B":
+        # Handle english
+        if abbreviation[:2] == "Ja" and abbreviation[2:] == english[6:]:
+            abbreviation = abbreviation[:2]
+        elif abbreviation[:2] == "Ja" and abbreviation[2:] != english[6:]:
             cal.subcomponents.remove(component)
             continue
 
@@ -94,14 +92,14 @@ st.title("Fizjoterapia - Plan zajęć 📅")
 col1, col2, col3 = st.columns([0.45, 0.01, 0.49])
 with col1:
     group = st.selectbox(
-    "Wybierz grupę ćwiczeniową:",
-    ["Grupa A", "Grupa B", "Grupa C"],
-    index=1,
-)
+        "Wybierz grupę ćwiczeniową:",
+        ["Grupa A", "Grupa B", "Grupa C"],
+        index=1,
+    )
 with col3:
     english = st.selectbox(
         "Wybierz grupę z angielskiego:",
-        ["Grupa A", "Grupa B", "Grupa C"],
+        ["Grupa 1A", "Grupa 1B+2+3"],
         index=0,
     )
 
