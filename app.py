@@ -10,6 +10,7 @@ legend = {
     "Fkwcwwg": "Fizjoterapia kliniczna w chorobach wewnętrznych w geriatrii",
     "Fkwdurwoit": "Fizjoterapia kliniczna w dysfunkcjach układu ruchu w ortopedii i traumatologii",
     "Fkwdurwr": "Fizjoterapia kliniczna w dysfunkcjach układu ruchu w reumatologii",
+    "Fkwcwwkik": "Fizjoterapia kliniczna w chorobach wewnętrznych w kardiologii i kardiochirurgii",
     "Ja1A": "Język angielski - 1 A",
     "Ja1B+2+3": "Język angielski - 1 B + 2B + 3B",
     "Kin": "Kinezyterapia",
@@ -28,9 +29,8 @@ def get_week_number():
 
 
 # Function to get and prepare the calendar for download
-def get_calendar(group):
+def get_calendar(group, week_number):
     # Construct the URL
-    week_number = get_week_number()
     url = f"http://web0.awf.poznan.pl/plan/plan.php?type=0&id=88436&cvsfile=true&w={week_number}"
 
     # Download the calendar file
@@ -91,16 +91,24 @@ st.title("Fizjoterapia - Plan zajęć 📅")
 group = st.selectbox("Wybierz grupę:", ["Grupa A", "Grupa B", "Grupa C"], index=1)
 
 if group:
-    calendar_bytes, calendar_filename = get_calendar(group)
+    week_number = get_week_number()
+    calendar_bytes, calendar_filename = get_calendar(group, week_number)
     if calendar_bytes:
         st.download_button(
-            label="Pobierz",
+            label="Ten tydzień",
             data=calendar_bytes,
             file_name=calendar_filename,
             mime="text/calendar"
         )
-    else:
-        st.error("Coś poszło nie tak, spróbuj ponownie później.")
+    next_week_number = week_number + 1
+    next_calendar_bytes, next_calendar_filename = get_calendar(group, next_week_number)
+    if next_calendar_bytes:
+        st.download_button(
+            label="Następny tydzień",
+            data=next_calendar_bytes,
+            file_name=next_calendar_filename,
+            mime="text/calendar"
+        )
 
 st.markdown("---")
 st.image("https://i.pinimg.com/736x/23/86/e3/2386e3023848e6754b8f0ad9597676a7.jpg")
