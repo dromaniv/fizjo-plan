@@ -45,19 +45,16 @@ def get_calendar(group, week_number):
         title = ""
         if "wyk" in summary:
             title = "W - "
-            component.add("categories", "wyklad")
             component.add("color", "gray")
         elif "ćw" in summary:
             title = "ĆW - "
-            component.add("categories", "cwiczenia")
             component.add("color", "red")
 
         elif "klin" in summary:
             title = "K - "
-            component.add("categories", "klinika")
             component.add("color", "blue")
         else:
-            component.add("color", "red")
+            component.add("color", "darkred")
 
         # Extract the abbreviation and add it to the title
         abbreviation = summary.split()[0]
