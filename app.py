@@ -6,18 +6,17 @@ from icalendar import Calendar
 
 # Define the abbreviation legend
 legend = {
+    "Mas": "Masaż",
+    "Kin": "Kinezyterapia",
+    "Ja": "Język angielski",
+    "Mffib": "Medycyna fizykalna - fizykoterapia i balneoklimatologia",
     "Fkwcwwc": "Fizjoterapia kliniczna w chorobach wewnętrznych w chirurgii",
     "Fkwcwwg": "Fizjoterapia kliniczna w chorobach wewnętrznych w geriatrii",
-    "Fkwdurwoit": "Fizjoterapia kliniczna w dysfunkcjach układu ruchu w ortopedii i traumatologii",
-    "Fkwdurwr": "Fizjoterapia kliniczna w dysfunkcjach układu ruchu w reumatologii",
-    "Fkwcwwkik": "Fizjoterapia kliniczna w chorobach wewnętrznych w kardiologii i kardiochirurgii",
-    "Ja": "Język angielski",
-    "Kin": "Kinezyterapia",
-    "Mas": "Masaż",
-    "Mffib": "Medycyna fizykalna - fizykoterapia i balneoklimatologia",
     "Kpfwnin": "Kliniczne podstawy fizjoterapii w neurologii i neurochirurgii",
+    "Fkwdurwr": "Fizjoterapia kliniczna w dysfunkcjach układu ruchu w reumatologii",
+    "Fkwdurwoit": "Fizjoterapia kliniczna w dysfunkcjach układu ruchu w ortopedii i traumatologii",
+    "Fkwcwwkik": "Fizjoterapia kliniczna w chorobach wewnętrznych w kardiologii i kardiochirurgii",
 }
-
 
 # Helper function to calculate the current week number
 def get_week_number():
@@ -89,7 +88,7 @@ st.set_page_config(page_title="Plan zajęć", page_icon="📅")
 
 st.title("Fizjoterapia - Plan zajęć 📅")
 
-col1, col2, col3 = st.columns([0.45, 0.01, 0.49])
+col1, col2, col3 = st.columns([0.45, 0.01, 0.48])
 with col1:
     group = st.selectbox(
         "Wybierz grupę ćwiczeniową:",
