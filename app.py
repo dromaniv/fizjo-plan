@@ -126,5 +126,5 @@ if group:
                 mime="text/calendar",
             )
 
-st.html("<br>")
+st.markdown("<br />", unsafe_allow_html=True)
 st.image("https://i.pinimg.com/736x/23/86/e3/2386e3023848e6754b8f0ad9597676a7.jpg")
