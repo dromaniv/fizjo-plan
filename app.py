@@ -55,10 +55,10 @@ def get_calendar(week_number, group="Grupa B", english=False):
         abbreviation = summary.split()[0]
 
         # Handle English
-        if abbreviation == "Ja1A" and english:
+        if abbreviation == "Ja1A" and not english == "Grupa A":
             cal.subcomponents.remove(component)
             continue
-        elif abbreviation == "Ja1B+2+3" and not english:
+        elif abbreviation == "Ja1B+2+3" and not english == "Grupa B":
             cal.subcomponents.remove(component)
             continue
 
@@ -89,39 +89,29 @@ def get_calendar(week_number, group="Grupa B", english=False):
 # Streamlit app
 st.set_page_config(page_title="Plan zajęć", page_icon="📅")
 
-# Print streamlit version
-st.write(f"Streamlit version: {st.__version__}")
-
 st.title("Fizjoterapia - Plan zajęć 📅")
 
-st.write("Wybierz grupę ćwiczeniową:")
-group = st.selectbox(
-    "Wybierz grupę ćwiczeniową",
+col1, col2, col3 = st.columns([0.45, 0.01, 0.49])
+with col1:
+    group = st.selectbox(
+    "Wybierz grupę ćwiczeniową:",
     ["Grupa A", "Grupa B", "Grupa C"],
     index=1,
-    label_visibility="collapsed",
 )
-
-st.write("Wybierz grupę z angielskiego:")
-col1, col2, col3 = st.columns([0.125, 0.1, 0.775])
-with col1:
-    st.write("Grupa A")
-
-with col2:
-    english = st.toggle(
-        "Wybierz grupę z angielskiego", value=False, label_visibility="collapsed"
-    )
-
 with col3:
-    st.write("Grupa B")
+    english = st.selectbox(
+        "Wybierz grupę z angielskiego:",
+        ["Grupa A", "Grupa B", "Grupa C"],
+        index=0,
+    )
 
 st.write("Pobierz plan zajęć:")
 if group:
-    col5, col6, col7 = st.columns([0.2, 0.3, 0.5])
+    col4, col5, col6 = st.columns([0.2, 0.3, 0.5])
     week = get_week_number()
     calendar_bytes, calendar_filename = get_calendar(week, group, english)
     if calendar_bytes:
-        with col5:
+        with col4:
             st.download_button(
                 label="Ten tydzień",
                 data=calendar_bytes,
@@ -130,7 +120,7 @@ if group:
             )
     next_calendar_bytes, next_calendar_filename = get_calendar(week + 1, group, english)
     if next_calendar_bytes:
-        with col6:
+        with col5:
             st.download_button(
                 label="Następny tydzień",
                 data=next_calendar_bytes,
