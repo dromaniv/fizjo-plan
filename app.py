@@ -49,7 +49,6 @@ def get_calendar(group, week_number):
         elif "ćw" in summary:
             title = "ĆW - "
             component.add("color", "red")
-
         elif "klin" in summary:
             title = "K - "
             component.add("color", "blue")
@@ -101,7 +100,7 @@ if group:
             label="Ten tydzień",
             data=calendar_bytes,
             file_name=calendar_filename,
-            mime="text/calendar"
+            mime="text/calendar",
         )
     next_week_number = week_number + 1
     next_calendar_bytes, next_calendar_filename = get_calendar(group, next_week_number)
@@ -110,7 +109,7 @@ if group:
             label="Następny tydzień",
             data=next_calendar_bytes,
             file_name=next_calendar_filename,
-            mime="text/calendar"
+            mime="text/calendar",
         )
 
 st.markdown("---")
