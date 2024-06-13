@@ -42,7 +42,7 @@ def get_calendar(week_number, group="Grupa B", english=False):
             component.add("color", "darkred")
 
         # Extract the abbreviation and add it to the title
-        if "zaliczen" in summary or "egzamin" in summary:
+        if "aliczeni" in summary or "gzamin" in summary:
             abbreviation = summary
         else:
             abbreviation = summary.split()[0]
