@@ -43,7 +43,10 @@ def get_calendar(week_number, group="Grupa B", english=False):
 
         # Extract the abbreviation and add it to the title
         if "aliczeni" in summary or "gzamin" in summary:
-            abbreviation = summary
+            try:
+                abbreviation = summary.split("  ")[0]
+            except:
+                abbreviation = summary
         else:
             abbreviation = summary.split()[0]
 
