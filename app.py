@@ -3,20 +3,12 @@ import requests
 import streamlit as st
 from datetime import datetime
 from icalendar import Calendar
+import yaml
 
-# Define the abbreviation legend
-legend = {
-    "Mas": "Masaż",
-    "Kin": "Kinezyterapia",
-    "Ja": "Język angielski",
-    "Mffib": "Medycyna fizykalna - fizykoterapia i balneoklimatologia",
-    "Fkwcwwc": "Fizjoterapia kliniczna w chorobach wewnętrznych w chirurgii",
-    "Fkwcwwg": "Fizjoterapia kliniczna w chorobach wewnętrznych w geriatrii",
-    "Kpfwnin": "Kliniczne podstawy fizjoterapii w neurologii i neurochirurgii",
-    "Fkwdurwr": "Fizjoterapia kliniczna w dysfunkcjach układu ruchu w reumatologii",
-    "Fkwdurwoit": "Fizjoterapia kliniczna w dysfunkcjach układu ruchu w ortopedii i traumatologii",
-    "Fkwcwwkik": "Fizjoterapia kliniczna w chorobach wewnętrznych w kardiologii i kardiochirurgii",
-}
+# Load the YAML file
+with open('legend.yaml', 'r') as file:
+    data = yaml.safe_load(file)
+    legend = data['abbreviations']
 
 # Helper function to calculate the current week number
 def get_week_number():
@@ -50,7 +42,10 @@ def get_calendar(week_number, group="Grupa B", english=False):
             component.add("color", "darkred")
 
         # Extract the abbreviation and add it to the title
-        abbreviation = summary.split()[0]
+        if "zaliczen" in summary or "egzamin" in summary:
+            abbreviation = summary
+        else:
+            abbreviation = summary.split()[0]
 
         # Handle english
         if abbreviation[:2] == "Ja" and abbreviation[2:] == english[6:]:
