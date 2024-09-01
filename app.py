@@ -69,7 +69,6 @@ def fetch_events(selected_week):
         matches = re.search(r"c\.events = (\[.*?\]);", script.string, re.DOTALL)
         if matches:
             return json.loads(matches.group(1))
-    st.error("Events data not found.")
     return []
 
 
@@ -138,6 +137,6 @@ if events:
         mime="text/calendar",
     )
 else:
-    st.markdown("Brak danych o zajęciach na wybrany tydzień :(")
+    st.error("Brak danych o zajęciach na wybrany tydzień :(")
 
 st.markdown("<br />", unsafe_allow_html=True)
