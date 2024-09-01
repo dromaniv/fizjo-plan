@@ -39,7 +39,7 @@ def current_week(date):
 
 
 # Core functions
-def fetch_events(week, year="4"):
+def fetch_events(week, year):
     """Fetch events data from the website based on the selected week."""
     session = requests.Session()
     soup = BeautifulSoup(session.get(URL).content, "html.parser")
