@@ -152,15 +152,15 @@ with st.spinner("Pobieranie danych..."):
 
 # Handle the display and download of the calendar
 if events:
-    st.download_button(
+    st.toast("Dane zostały pobrane pomyślnie!", icon="🎉")
+    if st.download_button(
         label=":rainbow[Pobierz / Importuj]",
         data=calendar_bytes,
         file_name=f'plan_{selected_date.strftime("%Y-%m-%d")}.ics',
         mime="text/calendar",
-    )
+    ):
+        st.balloons()
 else:
     st.error("Brak danych o zajęciach na wybrany tydzień :(")
-
-st.balloons()
 
 st.markdown("<br />", unsafe_allow_html=True)
