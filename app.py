@@ -1,127 +1,115 @@
-import re
 import requests
+from bs4 import BeautifulSoup
+from datetime import datetime, timedelta
+import json
+import re
 import streamlit as st
-from datetime import datetime
-from icalendar import Calendar
-import yaml
+from icalendar import Calendar, Event
 
-# Load the YAML file
-with open('legend.yaml', 'r') as file:
-    data = yaml.safe_load(file)
-    legend = data['abbreviations']
+# Constants
+URL = "https://publico.agcp.ipleiria.pt/paginas/ScheduleRptCursosSemanalPublico.aspx"
 
-# Helper function to calculate the current week number
-def get_week_number():
-    base_date = datetime(2024, 5, 13)
-    current_date = datetime.now()
-    week_diff = (current_date - base_date).days // 7
-    return 617 + week_diff  # Adjusting 617 for 13.05.2023
+# Helper functions
+def get_form_values(soup):
+    """Extract hidden form values required for POST requests."""
+    return {tag['name']: tag['value'] for tag in soup.select('input[name][value]') if tag['name'] in ['__VIEWSTATE', '__EVENTVALIDATION']}
 
+def submit_form(session, url, soup, **kwargs):
+    """Submit form data and return the updated BeautifulSoup object."""
+    payload = get_form_values(soup)
+    payload.update(kwargs)
+    response = session.post(url, data=payload)
+    return BeautifulSoup(response.content, 'html.parser')
 
-# Function to get and prepare the calendar for download
-def get_calendar(week_number, group="Grupa B", english=False):
-    # Construct the URL
-    url = f"http://web0.awf.poznan.pl/plan/plan.php?type=0&id=88436&cvsfile=true&w={week_number}"
+def current_week(date):
+    """Calculate the start date of the current week."""
+    start_of_week = date - timedelta(days=date.weekday())
+    return start_of_week.strftime('%d-%m-%Y')
 
-    # Download the calendar file
-    response = requests.get(url)
-    response.raise_for_status()  # Ensure we got a successful response
+# Core functions
+def fetch_events(selected_week):
+    """Fetch events data from the website based on the selected week."""
+    session = requests.Session()
+    soup = BeautifulSoup(session.get(URL).content, 'html.parser')
 
-    # Load and process the calendar
-    cal = Calendar.from_ical(response.content)
-    for component in cal.walk("vevent"):
-        summary = component.get("summary")
-        # Determine the color based on the type of class
-        if "wyk" in summary:
-            component.add("color", "gray")
-        elif "ćw" in summary:
-            component.add("color", "red")
-        elif "klin" in summary:
-            component.add("color", "blue")
-        else:
-            component.add("color", "darkred")
+    steps = [
+        {'ctl00$PlaceHolderAGCPUO$ddlUO': '5', '__EVENTTARGET': 'ctl00$PlaceHolderAGCPUO$ddlUO'},
+        {'ctl00$PlaceHolderMain$ddlCursos': '9504', '__EVENTTARGET': 'ctl00$PlaceHolderAGCPUO$ddlCursos'},
+        {'ctl00$PlaceHolderMain$ddlAnosCurr': '4', '__EVENTTARGET': 'ctl00$PlaceHolderMain$ddlAnosCurr'},
+        {'ctl00$PlaceHolderMain$ddlSemanas': current_week(selected_week), '__EVENTTARGET': 'ctl00$PlaceHolderMain$ddlSemanas'}
+    ]
 
-        # Extract the abbreviation and add it to the title
-        if "aliczeni" in summary or "gzamin" in summary:
-            try:
-                abbreviation = summary.split("  ")[0]
-            except:
-                abbreviation = summary
-        else:
-            abbreviation = summary.split()[0]
+    for step in steps:
+        soup = submit_form(session, URL, soup, **step)
 
-        # Handle english
-        if abbreviation[:2] == "Ja" and abbreviation[2:] == english[6:]:
-            abbreviation = abbreviation[:2]
-        elif abbreviation[:2] == "Ja" and abbreviation[2:] != english[6:]:
-            cal.subcomponents.remove(component)
-            continue
+    script = soup.find('script', string=re.compile('c.events = '))
+    if script:
+        matches = re.search(r'c\.events = (\[.*?\]);', script.string, re.DOTALL)
+        if matches:
+            return json.loads(matches.group(1))
+    st.error("Events data not found.")
+    return []
 
-        # Handle groups
-        if abbreviation[-1] in ["A", "B", "C"]:
-            if abbreviation[-2] == "p" and abbreviation[-1] == group[-1]:
-                abbreviation = abbreviation[:-2]
-            elif abbreviation[-2] == "p" and abbreviation[-1] != group[-1]:
-                cal.subcomponents.remove(component)
-                continue
+def convert_to_ical(events):
+    """Convert fetched events data to iCalendar format."""
+    cal = Calendar()
+    cal.add('prodid', '-//Leiria Schedule//Plan zajec//PT')
+    cal.add('version', '2.0')
+    cal.add('calscale', 'GREGORIAN')
+    cal.add('method', 'PUBLISH')
+    cal.add('x-wr-calname', 'Plan zajec')
+    cal.add('x-wr-timezone', 'Europe/Lisbon')
 
-        component["summary"] = legend.get(abbreviation, abbreviation)
-        component["description"] = summary[len(abbreviation) :].strip()
+    for event in events:
+        data = event['InnerHTML'].split(' - ')
+        color = 'red' if 'TP' in data[0] else 'blue'
 
-        # Regex pattern to extract Polish street
-        pattern = r"ul\.\s?[\w\s]+"
-        street = re.search(pattern, component["description"])
-        if street:
-            component["location"] = (
-                "ul. " + street.group()[3:].strip() + ", Poznań, Polska"
-            )
-        else:
-            component["location"] = "ul. Królowej Jadwigi 27/39, Poznań, Polska"
+        ical_event = Event()
+        ical_event.add('summary', data[0])
+        ical_event.add('description', event['InnerHTML'])
+        ical_event.add('location', data[3])
+        ical_event.add('color', color)
 
-    return cal.to_ical(), f"calendar_{group[-1]}_{week_number}.ics"
+        start_time = datetime.strptime(event['Start'], '%B %d, %Y %H:%M:%S %z')
+        end_time = datetime.strptime(event['End'], '%B %d, %Y %H:%M:%S %z')
 
+        ical_event.add('dtstart', start_time)
+        ical_event.add('dtend', end_time)
 
-# Streamlit app
-st.set_page_config(page_title="Plan zajęć", page_icon="📅")
+        cal.add_component(ical_event)
 
-st.title("Fizjoterapia - Plan zajęć 📅")
+    return cal.to_ical()
 
-col1, col2, col3 = st.columns([0.45, 0.01, 0.48])
-with col1:
-    group = st.selectbox(
-        "Wybierz grupę ćwiczeniową:",
-        ["Grupa A", "Grupa B", "Grupa C"],
-        index=1,
+# Streamlit app setup
+st.set_page_config(page_title="Plan Zajęć", page_icon="🏖️")
+
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-image: url("https://i.postimg.cc/LXttDXJB/leiria-5.png");
+        background-size: cover;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+st.title("🇵🇹 Leiria - Plan Zajęć 🌴")
+
+# Date picker for selecting the week
+selected_date = st.date_input("Wybierz tydzień:", datetime.now())
+events = fetch_events(selected_date)
+
+# Handle the display and download of the calendar
+if events:
+    calendar_bytes = convert_to_ical(events)
+    st.download_button(
+        label="Pobierz kalendarz",
+        data=calendar_bytes,
+        file_name="plan_zajec.ics",
+        mime="text/calendar"
     )
-with col3:
-    english = st.selectbox(
-        "Wybierz grupę z angielskiego:",
-        ["Grupa 1A", "Grupa 1B+2+3"],
-        index=0,
-    )
-
-st.write("Pobierz plan zajęć:")
-if group:
-    col4, col5, col6 = st.columns([0.2, 0.3, 0.5])
-    week = get_week_number()
-    calendar_bytes, calendar_filename = get_calendar(week, group, english)
-    if calendar_bytes:
-        with col4:
-            st.download_button(
-                label="Ten tydzień",
-                data=calendar_bytes,
-                file_name=calendar_filename,
-                mime="text/calendar",
-            )
-    next_calendar_bytes, next_calendar_filename = get_calendar(week + 1, group, english)
-    if next_calendar_bytes:
-        with col5:
-            st.download_button(
-                label="Następny tydzień",
-                data=next_calendar_bytes,
-                file_name=next_calendar_filename,
-                mime="text/calendar",
-            )
+else:
+    st.markdown("Brak danych o zajęciach na wybrany tydzień :(")
 
 st.markdown("<br />", unsafe_allow_html=True)
-st.image("https://i.pinimg.com/736x/23/86/e3/2386e3023848e6754b8f0ad9597676a7.jpg")
