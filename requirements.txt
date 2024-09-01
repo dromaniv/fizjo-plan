@@ -3,3 +3,4 @@ streamlit==1.37.1
 icalendar==4.1.0
 PyYAML==6.0.1
 beautifulsoup4==4.12.3
+googletrans==4.0.0-rc1

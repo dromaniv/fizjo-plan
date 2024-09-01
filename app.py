@@ -6,10 +6,12 @@ import re
 import streamlit as st
 from icalendar import Calendar, Event
 import pytz
+from googletrans import Translator
 
 # Constants
 URL = "https://publico.agcp.ipleiria.pt/paginas/ScheduleRptCursosSemanalPublico.aspx"
 PORTUGAL_TZ = pytz.timezone("Europe/Lisbon")
+translator = Translator()
 
 
 # Helper functions
@@ -87,7 +89,9 @@ def convert_to_ical(events):
         color = "red" if "TP" in data[0] else "blue"
 
         ical_event = Event()
-        ical_event.add("summary", data[0])
+        ical_event.add(
+            "summary", translator.translate(data[0], src="pt", dest="pl").text
+        )
         ical_event.add("description", event["InnerHTML"])
         ical_event.add("location", data[3])
         ical_event.add("color", color)
@@ -125,11 +129,15 @@ st.title("Leiria - Plan Zajęć 🇵🇹 ")
 
 # Date picker for selecting the week
 selected_date = st.date_input("Wybierz tydzień:", datetime.now())
-events = fetch_events(selected_date)
+
+# Loading spinner
+with st.spinner("Pobieranie danych..."):
+    events = fetch_events(selected_date)
+    if events:
+        calendar_bytes = convert_to_ical(events)
 
 # Handle the display and download of the calendar
-if events:
-    calendar_bytes = convert_to_ical(events)
+if events and calendar_bytes:
     st.download_button(
         label="Pobierz kalendarz",
         data=calendar_bytes,
