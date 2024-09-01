@@ -9,76 +9,98 @@ from icalendar import Calendar, Event
 # Constants
 URL = "https://publico.agcp.ipleiria.pt/paginas/ScheduleRptCursosSemanalPublico.aspx"
 
+
 # Helper functions
 def get_form_values(soup):
     """Extract hidden form values required for POST requests."""
-    return {tag['name']: tag['value'] for tag in soup.select('input[name][value]') if tag['name'] in ['__VIEWSTATE', '__EVENTVALIDATION']}
+    return {
+        tag["name"]: tag["value"]
+        for tag in soup.select("input[name][value]")
+        if tag["name"] in ["__VIEWSTATE", "__EVENTVALIDATION"]
+    }
+
 
 def submit_form(session, url, soup, **kwargs):
     """Submit form data and return the updated BeautifulSoup object."""
     payload = get_form_values(soup)
     payload.update(kwargs)
     response = session.post(url, data=payload)
-    return BeautifulSoup(response.content, 'html.parser')
+    return BeautifulSoup(response.content, "html.parser")
+
 
 def current_week(date):
     """Calculate the start date of the current week."""
     start_of_week = date - timedelta(days=date.weekday())
-    return start_of_week.strftime('%d-%m-%Y')
+    return start_of_week.strftime("%d-%m-%Y")
+
 
 # Core functions
 def fetch_events(selected_week):
     """Fetch events data from the website based on the selected week."""
     session = requests.Session()
-    soup = BeautifulSoup(session.get(URL).content, 'html.parser')
+    soup = BeautifulSoup(session.get(URL).content, "html.parser")
 
     steps = [
-        {'ctl00$PlaceHolderAGCPUO$ddlUO': '5', '__EVENTTARGET': 'ctl00$PlaceHolderAGCPUO$ddlUO'},
-        {'ctl00$PlaceHolderMain$ddlCursos': '9504', '__EVENTTARGET': 'ctl00$PlaceHolderAGCPUO$ddlCursos'},
-        {'ctl00$PlaceHolderMain$ddlAnosCurr': '4', '__EVENTTARGET': 'ctl00$PlaceHolderMain$ddlAnosCurr'},
-        {'ctl00$PlaceHolderMain$ddlSemanas': current_week(selected_week), '__EVENTTARGET': 'ctl00$PlaceHolderMain$ddlSemanas'}
+        {
+            "ctl00$PlaceHolderAGCPUO$ddlUO": "5",
+            "__EVENTTARGET": "ctl00$PlaceHolderAGCPUO$ddlUO",
+        },
+        {
+            "ctl00$PlaceHolderMain$ddlCursos": "9504",
+            "__EVENTTARGET": "ctl00$PlaceHolderAGCPUO$ddlCursos",
+        },
+        {
+            "ctl00$PlaceHolderMain$ddlAnosCurr": "4",
+            "__EVENTTARGET": "ctl00$PlaceHolderMain$ddlAnosCurr",
+        },
+        {
+            "ctl00$PlaceHolderMain$ddlSemanas": current_week(selected_week),
+            "__EVENTTARGET": "ctl00$PlaceHolderMain$ddlSemanas",
+        },
     ]
 
     for step in steps:
         soup = submit_form(session, URL, soup, **step)
 
-    script = soup.find('script', string=re.compile('c.events = '))
+    script = soup.find("script", string=re.compile("c.events = "))
     if script:
-        matches = re.search(r'c\.events = (\[.*?\]);', script.string, re.DOTALL)
+        matches = re.search(r"c\.events = (\[.*?\]);", script.string, re.DOTALL)
         if matches:
             return json.loads(matches.group(1))
     st.error("Events data not found.")
     return []
 
+
 def convert_to_ical(events):
     """Convert fetched events data to iCalendar format."""
     cal = Calendar()
-    cal.add('prodid', '-//Leiria Schedule//Plan zajec//PT')
-    cal.add('version', '2.0')
-    cal.add('calscale', 'GREGORIAN')
-    cal.add('method', 'PUBLISH')
-    cal.add('x-wr-calname', 'Plan zajec')
-    cal.add('x-wr-timezone', 'Europe/Lisbon')
+    cal.add("prodid", "-//Leiria Schedule//Plan zajec//PT")
+    cal.add("version", "2.0")
+    cal.add("calscale", "GREGORIAN")
+    cal.add("method", "PUBLISH")
+    cal.add("x-wr-calname", "Plan zajec")
+    cal.add("x-wr-timezone", "Europe/Lisbon")
 
     for event in events:
-        data = event['InnerHTML'].split(' - ')
-        color = 'red' if 'TP' in data[0] else 'blue'
+        data = event["InnerHTML"].split(" - ")
+        color = "red" if "TP" in data[0] else "blue"
 
         ical_event = Event()
-        ical_event.add('summary', data[0])
-        ical_event.add('description', event['InnerHTML'])
-        ical_event.add('location', data[3])
-        ical_event.add('color', color)
+        ical_event.add("summary", data[0])
+        ical_event.add("description", event["InnerHTML"])
+        ical_event.add("location", data[3])
+        ical_event.add("color", color)
 
-        start_time = datetime.strptime(event['Start'], '%B %d, %Y %H:%M:%S %z')
-        end_time = datetime.strptime(event['End'], '%B %d, %Y %H:%M:%S %z')
+        start_time = datetime.strptime(event["Start"], "%B %d, %Y %H:%M:%S %z")
+        end_time = datetime.strptime(event["End"], "%B %d, %Y %H:%M:%S %z")
 
-        ical_event.add('dtstart', start_time)
-        ical_event.add('dtend', end_time)
+        ical_event.add("dtstart", start_time)
+        ical_event.add("dtend", end_time)
 
         cal.add_component(ical_event)
 
     return cal.to_ical()
+
 
 # Streamlit app setup
 st.set_page_config(page_title="Plan Zajęć", page_icon="🏖️")
@@ -92,7 +114,7 @@ st.markdown(
     }
     </style>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 st.title("🇵🇹 Leiria - Plan Zajęć 🌴")
 
@@ -107,7 +129,7 @@ if events:
         label="Pobierz kalendarz",
         data=calendar_bytes,
         file_name="plan_zajec.ics",
-        mime="text/calendar"
+        mime="text/calendar",
     )
 else:
     st.markdown("Brak danych o zajęciach na wybrany tydzień :(")
