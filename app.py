@@ -86,7 +86,7 @@ def convert_to_ical(events, translate=False):
 
     for event in events:
         data = event["InnerHTML"].split(" - ")
-        color = "red" if "(TP)" in data[0] else "blue"
+        color = "red" if "(TP" in data[0] else "blue"
 
         ical_event = Event()
         ical_event.add(
