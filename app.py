@@ -36,7 +36,7 @@ def get_current_week(date):
 
 
 # Core functions
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=28800, show_spinner=False)
 def fetch_events(week, year):
     """Fetch events data from the website based on the selected week and year."""
     soup = BeautifulSoup(requests.get(URL).content, "html.parser")
@@ -70,7 +70,7 @@ def fetch_events(week, year):
     return []
 
 
-def convert_to_ical(events, translate=False):
+def convert_to_ical(events, translate=False, subjects=[]):
     """Convert fetched events data to iCalendar format."""
     cal = Calendar()
     cal.add("prodid", "-//Leiria Schedule//Plan zajec//PT")
@@ -82,14 +82,29 @@ def convert_to_ical(events, translate=False):
 
     for event in events:
         data = event["InnerHTML"].split(" - ")
-        color = "red" if "(TP" in data[0] else "blue"
+
+        subject = next(
+            (subject for subject in subjects if subject["title"] in data[0]), None
+        )
+        color = (
+            "yellow"
+            if subject["year"] == 2
+            else (
+                "green"
+                if subject["year"] == 3
+                else "red" if subject["year"] == 4 else "blue"
+            )
+        )
 
         ical_event = Event()
-        summary_text = (
-            translator.translate(data[0], src="pt", dest="pl").text
-            if translate
-            else data[0]
-        )
+        try:
+            summary_text = (
+                translator.translate(data[0], src="pt", dest="pl").text
+                if translate
+                else data[0]
+            )
+        except:
+            summary_text = data[0]
         ical_event.add("summary", summary_text)
         ical_event.add("description", event["InnerHTML"])
         ical_event.add("location", data[3])
@@ -127,9 +142,7 @@ st.markdown(
 st.title("Leiria - Plan Zajęć 🇵🇹")
 
 translate = st.checkbox("Tłumaczenie nazw zajęć", value=True)
-selected_year = st.radio(
-    "Wybierz rok:", ["Auto", "1", "2", "3", "4", "5"], horizontal=True
-)
+selected_year = st.radio("Wybierz rok:", ["Auto", "2", "3", "4"], horizontal=True)
 
 # Date picker for selecting the week
 selected_date = st.date_input("Wybierz tydzień:", datetime.now())
@@ -155,7 +168,7 @@ with st.spinner("Pobieranie danych..."):
             )
     else:
         events = fetch_events(selected_date, selected_year)
-    calendar_bytes = convert_to_ical(events, translate)
+    calendar_bytes = convert_to_ical(events, translate, subjects)
 
 
 # Handle the display and download of the calendar
