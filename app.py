@@ -7,6 +7,7 @@ import streamlit as st
 from icalendar import Calendar, Event
 import pytz
 from googletrans import Translator
+import yaml
 
 # Constants
 URL = "https://publico.agcp.ipleiria.pt/paginas/ScheduleRptCursosSemanalPublico.aspx"
@@ -17,32 +18,28 @@ translator = Translator()
 # Helper functions
 def get_form_values(soup):
     """Extract hidden form values required for POST requests."""
-    return {
-        tag["name"]: tag["value"]
-        for tag in soup.select("input[name][value]")
-        if tag["name"] in ["__VIEWSTATE", "__EVENTVALIDATION"]
-    }
+    return {tag["name"]: tag["value"] for tag in soup.select("input[name][value]")}
 
 
-def submit_form(session, url, soup, **kwargs):
+def submit_form(url, soup, **kwargs):
     """Submit form data and return the updated BeautifulSoup object."""
     payload = get_form_values(soup)
     payload.update(kwargs)
-    response = session.post(url, data=payload)
+    response = requests.post(url, data=payload)
     return BeautifulSoup(response.content, "html.parser")
 
 
-def current_week(date):
+def get_current_week(date):
     """Calculate the start date of the current week."""
     start_of_week = date - timedelta(days=date.weekday())
     return start_of_week.strftime("%d-%m-%Y")
 
 
 # Core functions
+@st.cache_data(ttl=3600, show_spinner=False)
 def fetch_events(week, year):
-    """Fetch events data from the website based on the selected week."""
-    session = requests.Session()
-    soup = BeautifulSoup(session.get(URL).content, "html.parser")
+    """Fetch events data from the website based on the selected week and year."""
+    soup = BeautifulSoup(requests.get(URL).content, "html.parser")
 
     steps = [
         {
@@ -58,19 +55,18 @@ def fetch_events(week, year):
             "__EVENTTARGET": "ctl00$PlaceHolderMain$ddlAnosCurr",
         },
         {
-            "ctl00$PlaceHolderMain$ddlSemanas": current_week(week),
+            "ctl00$PlaceHolderMain$ddlSemanas": get_current_week(week),
             "__EVENTTARGET": "ctl00$PlaceHolderMain$ddlSemanas",
         },
     ]
 
     for step in steps:
-        soup = submit_form(session, URL, soup, **step)
+        soup = submit_form(URL, soup, **step)
 
     script = soup.find("script", string=re.compile("c.events = "))
     if script:
         matches = re.search(r"c\.events = (\[.*?\]);", script.string, re.DOTALL)
-        if matches:
-            return json.loads(matches.group(1))
+        return json.loads(matches.group(1)) if matches else []
     return []
 
 
@@ -89,14 +85,12 @@ def convert_to_ical(events, translate=False):
         color = "red" if "(TP" in data[0] else "blue"
 
         ical_event = Event()
-        ical_event.add(
-            "summary",
-            (
-                translator.translate(data[0], src="pt", dest="pl").text
-                if translate
-                else data[0]
-            ),
+        summary_text = (
+            translator.translate(data[0], src="pt", dest="pl").text
+            if translate
+            else data[0]
         )
+        ical_event.add("summary", summary_text)
         ical_event.add("description", event["InnerHTML"])
         ical_event.add("location", data[3])
         ical_event.add("color", color)
@@ -130,25 +124,39 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-st.title("Leiria - Plan Zajęć 🇵🇹 ")
+st.title("Leiria - Plan Zajęć 🇵🇹")
 
 translate = st.checkbox("Tłumaczenie nazw zajęć", value=True)
-
 selected_year = st.radio(
-    "Wybierz rok:", ["1", "2", "3", "4", "5"], horizontal=True, index=None
+    "Wybierz rok:", ["Auto", "1", "2", "3", "4", "5"], horizontal=True
 )
-
-# Wait until the user selects a year
-while selected_year is None:
-    st.stop()
 
 # Date picker for selecting the week
 selected_date = st.date_input("Wybierz tydzień:", datetime.now())
 
-# Loading spinner
+if selected_date < datetime(2024, 9, 9).date():
+    st.error("Brak danych o zajęciach na wybrany tydzień :(")
+    st.stop()
+
+
+# Fetch events data based on the selected week and year
 with st.spinner("Pobieranie danych..."):
-    events = fetch_events(selected_date, selected_year)
+    events = []
+    if selected_year == "Auto":
+        with open("legend.yaml", "r", encoding="utf-8") as f:
+            subjects = yaml.safe_load(f).get("subjects", [])
+
+        for subject in subjects:
+            subject_events = fetch_events(selected_date, subject["year"])
+            events.extend(
+                event
+                for event in subject_events
+                if subject["title"] in event["InnerHTML"]
+            )
+    else:
+        events = fetch_events(selected_date, selected_year)
     calendar_bytes = convert_to_ical(events, translate)
+
 
 # Handle the display and download of the calendar
 if events:
