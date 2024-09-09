@@ -54,7 +54,7 @@ def fetch_events(week, year):
             "__EVENTTARGET": "ctl00$PlaceHolderMain$ddlAnosCurr",
         },
         {
-            "ctl00$PlaceHolderMain$ddlSemanas": get_current_week(week),
+            "ctl00$PlaceHolderMain$ddlSemanas": week,
             "__EVENTTARGET": "ctl00$PlaceHolderMain$ddlSemanas",
         },
     ]
@@ -151,10 +151,7 @@ selected_year = st.radio("Wybierz rok:", ["Auto", "2", "3", "4"], horizontal=Tru
 
 # Date picker for selecting the week
 selected_date = st.date_input("Wybierz tydzień:", datetime.now())
-
-if selected_date < datetime(2024, 9, 9).date():
-    st.error("Brak danych o zajęciach na wybrany tydzień :(")
-    st.stop()
+selected_week = get_current_week(selected_date)
 
 # Fetch events data based on the selected week and year
 with st.spinner("Pobieranie danych..."):
@@ -165,7 +162,7 @@ with st.spinner("Pobieranie danych..."):
             subjects = yaml.safe_load(f).get("subjects", [])
 
         for subject in subjects:
-            subject_events = fetch_events(selected_date, subject["year"])
+            subject_events = fetch_events(selected_week, subject["year"])
             events.extend(
                 event
                 for event in subject_events
