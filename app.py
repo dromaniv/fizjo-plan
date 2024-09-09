@@ -165,6 +165,7 @@ with st.spinner("Pobieranie danych..."):
                 event
                 for event in subject_events
                 if subject["title"] in event["InnerHTML"]
+                and any(group in event["InnerHTML"] for group in subject["groups"])
             )
     else:
         events = fetch_events(selected_date, selected_year)
