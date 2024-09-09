@@ -1,4 +1,8 @@
 subjects:
+  - title: "Disfunções Morfo-Funcionais II"
+    year: 2
+    groups: ["(TP)"]
+    
   - title: "Fisioterapia em Cuidados de Saúde Primários"
     year: 3
     groups: ["(TP)", "(TP1)"]
@@ -18,7 +22,3 @@ subjects:
   - title: "Educação e Comunicação em Saúde"
     year: 4
     groups: ["(TP)", "(TP2)"]
-
-  - title: "Disfunções Morfo-Funcionais II"
-    year: 2
-    groups: ["(TP)"]
