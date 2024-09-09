@@ -159,6 +159,7 @@ if selected_date < datetime(2024, 9, 9).date():
 # Fetch events data based on the selected week and year
 with st.spinner("Pobieranie danych..."):
     events = []
+    subjects = []
     if selected_year == "Auto":
         with open("legend.yaml", "r", encoding="utf-8") as f:
             subjects = yaml.safe_load(f).get("subjects", [])
