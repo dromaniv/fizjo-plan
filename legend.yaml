@@ -1,13 +1,24 @@
 subjects:
-  - title: "Terapia Manual I"
-    year: 2
+  - title: "Fisioterapia em Cuidados de Saúde Primários"
+    year: 3
+    group: ["(TP)", "(TP1)"]
+
   - title: "Fisiologia do Exercício"
     year: 3
+    group: ["(TP)", "(TP1)", "(TP2)"]
+
   - title: "Terapia pelo Movimento"
     year: 3
+    group: ["(TP)", "(TP1)", "(TP2)"]
+
   - title: "Modelos e Métodos em Fisioterapia"
     year: 3
+    group: ["(TP)", "(TP1)"]
+
   - title: "Educação e Comunicação em Saúde"
     year: 4
+    group: ["(TP)", "(TP2)"]
+
   - title: "Disfunções Morfo-Funcionais II"
     year: 2
+    group: ["(TP)"]
