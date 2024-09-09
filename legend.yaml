@@ -13,7 +13,7 @@ subjects:
 
   - title: "Terapia pelo Movimento"
     year: 3
-    groups: ["(TP)", "(TP1)", "(TP2)"]
+    groups: ["(TP)", "(TP2)", "(TP3)"]
 
   - title: "Modelos e Métodos em Fisioterapia"
     year: 3
@@ -21,4 +21,4 @@ subjects:
 
   - title: "Educação e Comunicação em Saúde"
     year: 4
-    groups: ["(TP)", "(TP2)"]
+    groups: ["(TP)", "(TP1)"]
