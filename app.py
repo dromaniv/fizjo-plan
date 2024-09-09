@@ -177,7 +177,6 @@ with st.spinner("Pobieranie danych..."):
 
 # Handle the display and download of the calendar
 if events:
-    st.toast("Dane zostały pobrane pomyślnie!", icon="🎉")
     if st.download_button(
         label=":rainbow[Pobierz / Importuj]",
         data=calendar_bytes,
