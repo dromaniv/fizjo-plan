@@ -35,7 +35,6 @@ def get_current_week(date):
     return start_of_week.strftime("%d-%m-%Y")
 
 
-# Core functions
 @st.cache_data(ttl=28800, show_spinner=False)
 def fetch_events(week, year):
     """Fetch events data from the website based on the selected week and year."""
@@ -86,25 +85,25 @@ def convert_to_ical(events, translate=False, subjects=[]):
         subject = next(
             (subject for subject in subjects if subject["title"] in data[0]), None
         )
-        color = (
-            "yellow"
-            if subject["year"] == 2
-            else (
-                "green"
-                if subject["year"] == 3
-                else "red" if subject["year"] == 4 else "blue"
-            )
-        )
+
+        match subject["year"]:
+            case 2:
+                color = "yellow"
+            case 3:
+                color = "green"
+            case 4:
+                color = "red"
+            case _:
+                color = "blue"
+
+        summary_text = data[0]
+        if translate:
+            try:
+                summary_text = translator.translate(data[0], src="pt", dest="pl").text
+            except Exception:
+                pass
 
         ical_event = Event()
-        try:
-            summary_text = (
-                translator.translate(data[0], src="pt", dest="pl").text
-                if translate
-                else data[0]
-            )
-        except:
-            summary_text = data[0]
         ical_event.add("summary", summary_text)
         ical_event.add("description", event["InnerHTML"])
         ical_event.add("location", data[3])
@@ -141,6 +140,12 @@ st.markdown(
 )
 st.title("Leiria - Plan Zajęć 🇵🇹")
 
+# Option to view the legend.yaml file
+with st.expander("Wybrane przedmioty"):
+    with open("legend.yaml", "r", encoding="utf-8") as f:
+        legend_content = f.read()
+    st.text(legend_content)
+
 translate = st.checkbox("Tłumaczenie nazw zajęć", value=True)
 selected_year = st.radio("Wybierz rok:", ["Auto", "2", "3", "4"], horizontal=True)
 
@@ -150,7 +155,6 @@ selected_date = st.date_input("Wybierz tydzień:", datetime.now())
 if selected_date < datetime(2024, 9, 9).date():
     st.error("Brak danych o zajęciach na wybrany tydzień :(")
     st.stop()
-
 
 # Fetch events data based on the selected week and year
 with st.spinner("Pobieranie danych..."):
@@ -171,7 +175,6 @@ with st.spinner("Pobieranie danych..."):
         events = fetch_events(selected_date, selected_year)
     calendar_bytes = convert_to_ical(events, translate, subjects)
 
-
 # Handle the display and download of the calendar
 if events:
     st.toast("Dane zostały pobrane pomyślnie!", icon="🎉")
@@ -184,5 +187,6 @@ if events:
         st.balloons()
 else:
     st.error("Brak danych o zajęciach na wybrany tydzień :(")
+
 
 st.markdown("<br />", unsafe_allow_html=True)
