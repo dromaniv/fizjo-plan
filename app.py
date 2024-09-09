@@ -105,7 +105,7 @@ def convert_to_ical(events, translate=False, subjects=[]):
 
         ical_event = Event()
         ical_event.add("summary", summary_text)
-        ical_event.add("description", event["InnerHTML"])
+        ical_event.add("description", event["InnerHTML"] + f" - Y{subject['year']}")
         ical_event.add("location", data[3])
         ical_event.add("color", color)
 
