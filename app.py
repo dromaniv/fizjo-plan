@@ -69,7 +69,7 @@ def fetch_events(week, year):
     return []
 
 
-def convert_to_ical(events, translate=False, subjects=[]):
+def convert_to_ical(events, translate=False, subjects=[], year="Auto"):
     """Convert fetched events data to iCalendar format."""
     cal = Calendar()
     cal.add("prodid", "-//Leiria Schedule//Plan zajec//PT")
@@ -85,16 +85,12 @@ def convert_to_ical(events, translate=False, subjects=[]):
         subject = next(
             (subject for subject in subjects if subject["title"] in data[0]), None
         )
-
-        match subject["year"]:
-            case 2:
-                color = "yellow"
-            case 3:
-                color = "green"
-            case 4:
-                color = "red"
-            case _:
-                color = "blue"
+        color_map = {
+            "2": "yellow",
+            "3": "green",
+            "4": "red",
+        }
+        color = color_map.get(str(subject["year"] if year == "Auto" else year), "blue")
 
         summary_text = data[0]
         if translate:
@@ -105,16 +101,19 @@ def convert_to_ical(events, translate=False, subjects=[]):
 
         ical_event = Event()
         ical_event.add("summary", summary_text)
-        ical_event.add("description", event["InnerHTML"] + f" - Y{subject['year']}")
+        ical_event.add(
+            "description",
+            event["InnerHTML"] + f" - Y{subject['year'] if year == 'Auto' else year}",
+        )
         ical_event.add("location", data[3])
         ical_event.add("color", color)
 
         start_time = datetime.strptime(
             event["Start"], "%B %d, %Y %H:%M:%S %z"
-        ).astimezone(PORTUGAL_TZ) - timedelta(hours=1)
+        ).astimezone(PORTUGAL_TZ)
         end_time = datetime.strptime(event["End"], "%B %d, %Y %H:%M:%S %z").astimezone(
             PORTUGAL_TZ
-        ) - timedelta(hours=1)
+        )
 
         ical_event.add("dtstart", start_time)
         ical_event.add("dtend", end_time)
@@ -170,8 +169,8 @@ with st.spinner("Pobieranie danych..."):
                 and any(group in event["InnerHTML"] for group in subject["groups"])
             )
     else:
-        events = fetch_events(selected_date, selected_year)
-    calendar_bytes = convert_to_ical(events, translate, subjects)
+        events = fetch_events(selected_week, selected_year)
+    calendar_bytes = convert_to_ical(events, translate, subjects, year=selected_year)
 
 # Handle the display and download of the calendar
 if events:
