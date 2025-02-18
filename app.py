@@ -11,17 +11,18 @@ with open('legend.yaml', 'r') as file:
     legend = data['abbreviations']
 
 # Helper function to calculate the current week number
-def get_week_number():
-    base_date = datetime(2024, 5, 13)
-    current_date = datetime.now()
+def get_week_number(current_date=datetime.now()):
+    current_date = datetime(current_date.year, current_date.month, current_date.day)
+    base_date = datetime(2025, 2, 17)
     week_diff = (current_date - base_date).days // 7
-    return 617 + week_diff  # Adjusting 617 for 13.05.2023
+    return 657 + week_diff  # 657 is the week number of the base date
 
 
 # Function to get and prepare the calendar for download
-def get_calendar(week_number, group="Grupa B", english=False):
+def get_calendar(week_number, group="Grupa B"):
     # Construct the URL
-    url = f"http://web0.awf.poznan.pl/plan/plan.php?type=0&id=88436&cvsfile=true&w={week_number}"
+    url = f"http://web0.awf.poznan.pl/plan/plan.php?type=NaN&id=95765&cvsfile=true&w={week_number}"
+    print(url)
 
     # Download the calendar file
     response = requests.get(url)
@@ -49,13 +50,6 @@ def get_calendar(week_number, group="Grupa B", english=False):
                 abbreviation = summary
         else:
             abbreviation = summary.split()[0]
-
-        # Handle english
-        if abbreviation[:2] == "Ja" and abbreviation[2:] == english[6:]:
-            abbreviation = abbreviation[:2]
-        elif abbreviation[:2] == "Ja" and abbreviation[2:] != english[6:]:
-            cal.subcomponents.remove(component)
-            continue
 
         # Handle groups
         if abbreviation[-1] in ["A", "B", "C"]:
@@ -94,34 +88,25 @@ with col1:
         index=1,
     )
 with col3:
-    english = st.selectbox(
-        "Wybierz grupę z angielskiego:",
-        ["Grupa 1A", "Grupa 1B+2+3"],
-        index=0,
-    )
+    date = st.date_input("Wybierz tydzień:", datetime.now())
 
-st.write("Pobierz plan zajęć:")
 if group:
-    col4, col5, col6 = st.columns([0.2, 0.3, 0.5])
-    week = get_week_number()
-    calendar_bytes, calendar_filename = get_calendar(week, group, english)
+    week = get_week_number(date)
+    try:
+        calendar_bytes, calendar_filename = get_calendar(week, group)
+    except Exception as e:
+        st.error(f"Brak planu zajęć w wybranym tygodniu :(")
+        st.stop()
     if calendar_bytes:
-        with col4:
-            st.download_button(
-                label="Ten tydzień",
-                data=calendar_bytes,
-                file_name=calendar_filename,
-                mime="text/calendar",
-            )
-    next_calendar_bytes, next_calendar_filename = get_calendar(week + 1, group, english)
-    if next_calendar_bytes:
-        with col5:
-            st.download_button(
-                label="Następny tydzień",
-                data=next_calendar_bytes,
-                file_name=next_calendar_filename,
-                mime="text/calendar",
-            )
+        if st.download_button(
+            label=":rainbow[Pobierz / Importuj]",
+            data=calendar_bytes,
+            file_name=calendar_filename,
+            mime="text/calendar",
+        ):
+            st.balloons()
+    else:
+        st.error("Nie udało się pobrać planu zajęć")
 
 st.markdown("<br />", unsafe_allow_html=True)
 st.image("https://i.pinimg.com/736x/23/86/e3/2386e3023848e6754b8f0ad9597676a7.jpg")
