@@ -6,9 +6,10 @@ from icalendar import Calendar
 import yaml
 
 # Load the YAML file
-with open('legend.yaml', 'r') as file:
+with open("legend.yaml", "r") as file:
     data = yaml.safe_load(file)
-    legend = data['abbreviations']
+    legend = data["abbreviations"]
+
 
 # Helper function to calculate the current week number
 def get_week_number(current_date=datetime.now()):
@@ -22,7 +23,6 @@ def get_week_number(current_date=datetime.now()):
 def get_calendar(week_number, group="Grupa B"):
     # Construct the URL
     url = f"http://web0.awf.poznan.pl/plan/plan.php?type=NaN&id=95765&cvsfile=true&w={week_number}"
-    print(url)
 
     # Download the calendar file
     response = requests.get(url)
