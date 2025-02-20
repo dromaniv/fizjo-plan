@@ -60,7 +60,7 @@ def get_calendar(week_number, group="Grupa B"):
                 continue
 
         component["summary"] = legend.get(abbreviation, abbreviation)
-        component["description"] = ("zajęcia" + summary[len(abbreviation) :]).strip()
+        component["description"] = ("zajęcia " + summary[len(abbreviation) :].strip())
 
         # Regex pattern to extract Polish street
         pattern = r"ul\.\s?[\w\s]+"
