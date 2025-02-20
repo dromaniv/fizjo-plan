@@ -1,31 +1,62 @@
 function ColorEvents() {
   var calendars = CalendarApp.getAllOwnedCalendars();
-
-  var today = new Date();
-  var two_weeks = new Date();
-
-  today.setDate(today.getDate());
-  two_weeks.setDate(two_weeks.getDate() + 14);
-
-  for (var i=0; i<calendars.length; i++) {
-    var calendar = calendars[i];
-    var events = calendar.getEvents(today, two_weeks);
-    for (var j=0; j<events.length; j++) {
-      var e = events[j];
+  
+  // Define date range: from 'now' to two months later
+  var now = new Date();
+  var twoMonthsFromNow = new Date();
+  twoMonthsFromNow.setMonth(twoMonthsFromNow.getMonth() + 2);
+  
+  // Process each owned calendar
+  calendars.forEach(function(calendar) {
+    // Fetch all events in the date range
+    var events = calendar.getEvents(now, twoMonthsFromNow);
+    
+    // This map will track "zajęcia" events by their start time
+    var eventMap = {};
+    
+    // Go through each event
+    events.forEach(function(e) {
       var description = e.getDescription();
-     if (description.includes("wyk")) {
-        e.setColor(CalendarApp.EventColor.GRAY);
+      
+      // Only process events that have "zajęcia" in the description
+      if (!description.includes("zajęcia")) {
+        return;  // Skip if it doesn't match
       }
-     else if (description.includes("ćw")) {
-        e.setColor(CalendarApp.EventColor.RED);
+      
+      // Use the event's start time (string) as a key to detect duplicates
+      var startTimeKey = e.getStartTime().toString();
+      
+      if (eventMap[startTimeKey]) {
+        // If there's already an event at this start time,
+        // keep the one that was created later.
+        var existingEvent = eventMap[startTimeKey];
+        if (e.getDateCreated() > existingEvent.getDateCreated()) {
+          existingEvent.deleteEvent();
+          eventMap[startTimeKey] = e;
+        } else {
+          e.deleteEvent();
+          return; // Stop handling the current (older) event
+        }
+      } else {
+        eventMap[startTimeKey] = e;
       }
-     else if (description.includes("klin")) {
-        e.setColor(CalendarApp.EventColor.BLUE);
+      
+      // Determine a color based on keywords
+      var eventColor = CalendarApp.EventColor.MAUVE;  // Default
+      if (description.includes("wyk")) {
+        eventColor = CalendarApp.EventColor.GRAY;
+      } else if (description.includes("ćw ")) {
+        eventColor = CalendarApp.EventColor.GREEN;
+      } else if (description.includes("klin")) {
+        eventColor = CalendarApp.EventColor.YELLOW;
       }
-     else {
-        e.setColor(CalendarApp.EventColor.PALE_RED);
-     }
-    }
-    Logger.log("Changed " + events.length + " events.");
-  }
+      
+      // Only set if needed
+      if (e.getColor() !== eventColor) {
+        e.setColor(eventColor);
+      }
+    });
+    
+    Logger.log("Processed " + events.length + " events in calendar: " + calendar.getName());
+  });
 }
