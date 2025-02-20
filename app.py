@@ -88,12 +88,12 @@ with col3:
 
 # Reserve a placeholder for the download button
 download_btn_placeholder = st.empty()
-st.markdown("<br />", unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
 if group:
     week = get_week_number(date)
     try:
-        with st.spinner("Recalculating calendar..."):
+        with st.spinner("Pobieranie danych..."):
             calendar_bytes, calendar_filename = get_calendar(week, group)
     except Exception as e:
         st.error("Brak planu zajęć w wybranym tygodniu :(")
@@ -111,5 +111,5 @@ if group:
     else:
         st.error("Nie udało się pobrać planu zajęć")
 
-st.markdown("<br />", unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
 st.image("https://i.pinimg.com/736x/23/86/e3/2386e3023848e6754b8f0ad9597676a7.jpg")
