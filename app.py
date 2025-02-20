@@ -10,14 +10,12 @@ with open("legend.yaml", "r") as file:
     data = yaml.safe_load(file)
     legend = data["abbreviations"]
 
-
 # Helper function to calculate the current week number
 def get_week_number(current_date=datetime.now()):
     current_date = datetime(current_date.year, current_date.month, current_date.day)
     base_date = datetime(2025, 2, 17)
     week_diff = (current_date - base_date).days // 7
     return 657 + week_diff  # 657 is the week number of the base date
-
 
 # Function to get and prepare the calendar for download
 def get_calendar(week_number, group="Grupa B"):
@@ -74,10 +72,8 @@ def get_calendar(week_number, group="Grupa B"):
 
     return cal.to_ical(), f"calendar_{group[-1]}_{week_number}.ics"
 
-
-# Streamlit app
+# Streamlit app configuration
 st.set_page_config(page_title="Plan zajęć", page_icon="📅")
-
 st.title("Fizjoterapia - Plan zajęć 📅")
 
 col1, col2, col3 = st.columns([0.45, 0.01, 0.48])
@@ -90,16 +86,23 @@ with col1:
 with col3:
     date = st.date_input("Wybierz tydzień:", datetime.now())
 
+# Reserve a placeholder for the download button
+download_btn_placeholder = st.empty()
+st.markdown("<br />", unsafe_allow_html=True)
+
 if group:
     week = get_week_number(date)
     try:
-        calendar_bytes, calendar_filename = get_calendar(week, group)
+        with st.spinner("Recalculating calendar..."):
+            calendar_bytes, calendar_filename = get_calendar(week, group)
     except Exception as e:
-        st.error(f"Brak planu zajęć w wybranym tygodniu :(")
+        st.error("Brak planu zajęć w wybranym tygodniu :(")
         st.stop()
+    
     if calendar_bytes:
-        if st.download_button(
-            label=":rainbow[Pobierz / Importuj]",
+        # Render the download button in the placeholder
+        if download_btn_placeholder.download_button(
+            label=":rainbow: Pobierz / Importuj",
             data=calendar_bytes,
             file_name=calendar_filename,
             mime="text/calendar",
