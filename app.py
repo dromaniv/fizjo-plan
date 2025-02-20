@@ -88,7 +88,6 @@ with col3:
 
 # Reserve a placeholder for the download button
 download_btn_placeholder = st.empty()
-st.markdown("<br>", unsafe_allow_html=True)
 
 if group:
     week = get_week_number(date)
@@ -102,7 +101,7 @@ if group:
     if calendar_bytes:
         # Render the download button in the placeholder
         if download_btn_placeholder.download_button(
-            label=":rainbow: Pobierz / Importuj",
+            label=":rainbow[Pobierz / Importuj]",
             data=calendar_bytes,
             file_name=calendar_filename,
             mime="text/calendar",
