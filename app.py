@@ -228,21 +228,16 @@ def _classify(summary: str):
 
 
 def generate_event_hash(component):
-    """Generate a hash of stable event content, including only summary, start date, and location."""
-    hash_data = []
-
-    # Fields to include (only these specific ones)
-    include_fields = ["summary", "dtstart", "dtend", "location"]
-
-    # Include only specified fields
-    for field in include_fields:
-        value = component.get(field)
-        if value:
-            hash_data.append(f"{field}:{value}")
-
-    combined = "|".join(sorted(hash_data))
+    def norm(val):
+        if hasattr(val, "dt"):
+            # icalendar property: get datetime and format
+            dt = val.dt
+            return dt.isoformat() if hasattr(dt, "isoformat") else str(dt)
+        return str(val).strip()
+    include_fields = ["summary", "dtstart", "dtend"]
+    hash_data = [f"{f}:{norm(component.get(f))}" for f in include_fields if component.get(f)]
+    combined = "|".join(hash_data)
     return hashlib.md5(combined.encode("utf-8")).hexdigest()[:8]
-
 
 # Function to get and prepare the calendar for download
 @st.cache_data(ttl=28800, show_spinner=False)
@@ -348,9 +343,10 @@ def get_full_semester_calendar(group="Grupa B"):
     start_week = get_week_number(start_of_semester)
     end_week = get_week_number(end_of_semester)
     full_cal = Calendar()
-    full_cal.add("prodid", "-//Fizjo-Plan Full Semester//fizjo-plan.streamlit.app//")
+    full_cal.add("prodid", "-//ATS4//Plan zajęć.//PL")
     full_cal.add("version", "2.0")
-    full_cal.add("X-WR-CALNAME", f"Fizjoterapia semestr zimowy - {group}")
+    full_cal.add("calscale", "GREGORIAN")
+    full_cal.add("X-WR-CALNAME", f"Plan zajęć.")
     full_cal.add("X-WR-TIMEZONE", "Europe/Warsaw")
     total_weeks = end_week - start_week + 1
     progress_bar = st.progress(0)
