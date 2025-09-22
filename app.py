@@ -14,17 +14,12 @@ with open("legend.yaml", "r") as file:
 
 def inject_global_css():
     """Inject global CSS with a fixed larger font size (no user control)."""
-    base_size = 18  # Increased base font size
+    base_size = 18
     st.markdown(f"""
         <style>
-        :root {{
-            --base-font-size: {base_size}px;
-        }}
-        /* Global font size */
-        .stApp, .stApp * {{
-            font-size: var(--base-font-size) !important;
-        }}
-        /* Increased spacing between elements */
+        :root {{ --base-font-size: {base_size}px; }}
+        .stApp, .stApp * {{ font-size: var(--base-font-size) !important; }}
+        /* Existing spacing rules ... */
         .element-container {{
             margin-bottom: 0.5rem !important;
             margin-top: 0.25rem !important;
@@ -93,6 +88,45 @@ def inject_global_css():
         .st-emotion-cache-183lzff, [class*="st-emotion-cache"] {{
             font-size: calc(var(--base-font-size) * 0.9) !important;
         }}
+        /* Compact pill stats */
+        .pill-stats {{
+            display:flex; flex-wrap:wrap; gap:.45rem; margin:.5rem 0 .75rem 0;
+        }}
+        .pill-stats .pill {{
+            background:#f1f5f9; color:#111; border:1px solid #e2e8f0; border-radius:999px;
+            padding:.35rem .85rem; font-size:.8rem; font-weight:600; letter-spacing:.25px; display:inline-flex; align-items:center;
+            box-shadow:0 1px 1px rgba(0,0,0,.04);
+        }}
+        .pill-stats .pill span {{ opacity:.65; font-weight:500; margin-right:.35rem; }}
+        .pill.tag-w {{ background:#e2e8f0; }}
+        .pill.tag-c {{ background:#ffe4e6; }}
+        .pill.tag-k {{ background:#e0f2fe; }}
+        .pill.tag-i {{ background:#fde4cf; }}
+        .insight-card {{
+            background:linear-gradient(145deg,#1e293b 0%,#0f172a 90%); color:#f1f5f9; padding:1rem 1.1rem; border:1px solid #334155; border-radius:14px; margin:.5rem 0 1.1rem 0; position:relative; overflow:hidden;
+        }}
+        .insight-card:before {{
+            content:""; position:absolute; inset:0; background:radial-gradient(circle at 85% -10%,rgba(99,102,241,.25),transparent 60%); pointer-events:none;
+        }}
+        .insight-card h4 {{ margin:0 0 .4rem 0; font-size:1.05rem; letter-spacing:.5px; }}
+        .insight-meta {{ display:flex; flex-wrap:wrap; gap:.65rem; margin-top:.55rem; font-size:.7rem; opacity:.85; text-transform:uppercase; letter-spacing:.6px; }}
+        .sparkline {{ height:38px; margin:.35rem 0 .2rem 0; }}
+        .sparkline svg {{ width:100%; height:38px; overflow:visible; }}
+        .mini-bars {{ display:flex; gap:4px; align-items:flex-end; height:38px; }}
+        .mini-bars .bar {{ flex:1; background:linear-gradient(180deg,#4f46e5,#6366f1); border-radius:4px 4px 2px 2px; position:relative; }}
+        .mini-bars .bar span {{ position:absolute; top:-15px; left:50%; transform:translateX(-50%); font-size:.55rem; font-weight:500; color:#94a3b8; }}
+        .mini-bars .bar.busy {{ background:linear-gradient(180deg,#dc2626,#f87171); }}
+        .pct-badges {{ display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.45rem; }}
+        .pct-badges .pct {{ font-size:.65rem; padding:.25rem .55rem; border-radius:6px; background:#334155; color:#e2e8f0; letter-spacing:.4px; }}
+        @media (prefers-color-scheme: dark) {{
+          .pill-stats .pill {{ background:#1e293b; color:#f1f5f9; border-color:#334155; }}
+          .pill.tag-w {{ background:#334155; }}
+          .pill.tag-c {{ background:#4c1d1d; }}
+          .pill.tag-k {{ background:#1e3a5f; }}
+          .pill.tag-i {{ background:#513626; }}
+          .pill-stats .pill span {{ color:#cbd5e1; opacity:1; }}
+        }}
+        .expander-stats > div {{ background:#0f172a55; }}
         </style>
     """, unsafe_allow_html=True)
 
@@ -111,6 +145,18 @@ def get_date_from_week_number(week_number):
     end_of_week = start_of_week + timedelta(days=6)
     return f"{start_of_week.strftime('%d.%m')} - {end_of_week.strftime('%d.%m.%Y')}"
 
+# Classification helper
+_DEF_TYPE_KEYS = ["Wykłady", "Ćwiczenia", "Kliniczne", "Inne"]
+
+def _classify(summary: str):
+    s = summary.lower()
+    if "wyk" in s:
+        return "Wykłady"
+    if "ćw" in s:
+        return "Ćwiczenia"
+    if "klin" in s:
+        return "Kliniczne"
+    return "Inne"
 
 # Function to get and prepare the calendar for download
 @st.cache_data(ttl=28800, show_spinner=False)
@@ -122,108 +168,208 @@ def get_calendar(week_number, group="Grupa B"):
     response = requests.get(url)
     response.raise_for_status()  # Ensure we got a successful response
 
+    # Stats containers
+    counts = {k: 0 for k in _DEF_TYPE_KEYS}
+    per_day = {i: 0 for i in range(7)}  # Monday=0
+
     # Load and process the calendar
     cal = Calendar.from_ical(response.content)
-    for component in cal.walk("vevent"):
+    for component in list(cal.walk("vevent")):
         summary = component.get("summary")
-        # Determine the color based on the type of class
-        if "wyk" in summary:
-            component.add("color", "gray")
-        elif "ćw" in summary:
-            component.add("color", "red")
-        elif "klin" in summary:
-            component.add("color", "blue")
-        else:
-            component.add("color", "darkred")
-
-        # Extract the abbreviation and add it to the title
-        if "aliczeni" in summary or "gzamin" in summary:
-            try:
-                abbreviation = summary.split("  ")[0]
-            except:
-                abbreviation = summary
-        else:
-            abbreviation = summary.split()[0]
-
-        # Handle groups
-        if abbreviation[-1] in ["A", "B", "C"]:
-            if abbreviation[-2] == "p" and abbreviation[-1] == group[-1]:
-                abbreviation = abbreviation[:-2]
-            elif abbreviation[-2] == "p" and abbreviation[-1] != group[-1]:
-                cal.subcomponents.remove(component)
-                continue
-
+        if not summary: continue
+        lower = summary.lower()
+        if "wyk" in lower: component.add("color","gray")
+        elif "ćw" in lower: component.add("color","red")
+        elif "klin" in lower: component.add("color","blue")
+        else: component.add("color","darkred")
+        t = _classify(summary); counts[t]+=1
+        dtstart = component.get('dtstart')
+        try:
+            if dtstart:
+                dt = dtstart.dt
+                if hasattr(dt,'weekday'): per_day[dt.weekday()]+=1
+        except Exception: pass
+        if "aliczeni" in lower or "gzamin" in lower:
+            try: abbreviation = summary.split("  ")[0]
+            except Exception: abbreviation = summary
+        else: abbreviation = summary.split()[0]
+        if abbreviation and abbreviation[-1] in ["A","B","C"]:
+            if len(abbreviation)>=2 and abbreviation[-2]=='p' and abbreviation[-1]==group[-1]: abbreviation = abbreviation[:-2]
+            elif len(abbreviation)>=2 and abbreviation[-2]=='p' and abbreviation[-1]!=group[-1]:
+                cal.subcomponents.remove(component); continue
         component["summary"] = legend.get(abbreviation, abbreviation)
-        component["description"] = ("zajęcia " + summary[len(abbreviation) :].strip())
-
-        # Regex pattern to extract Polish street
-        pattern = r"ul\.\s?[\w\s]+"
-        street = re.search(pattern, component["description"])
-        if street:
-            component["location"] = (
-                "ul. " + street.group()[3:].strip() + ", Poznań, Polska"
-            )
-        else:
-            component["location"] = "ul. Królowej Jadwigi 27/39, Poznań, Polska"
-
-    return cal.to_ical(), f"calendar_{group[-1]}_{week_number}.ics"
-
+        component["description"] = ("zajęcia "+ summary[len(abbreviation):].strip())
+        pattern = r"ul\.\s?[\w\s]+"; street = re.search(pattern, component["description"])
+        component["location"] = ("ul. "+street.group()[3:].strip()+", Poznań, Polska") if street else "ul. Królowej Jadwigi 27/39, Poznań, Polska"
+    total_events = sum(counts.values())
+    active_days = len([1 for c in per_day.values() if c>0])
+    avg_day = round(total_events / active_days,2) if total_events else 0
+    pct = {k: (round((counts[k]/total_events)*100,1) if total_events else 0.0) for k in counts}
+    stats = {
+        "week_number": week_number,
+        "date_range": get_date_from_week_number(week_number),
+        "Razem": total_events, **counts, "Procenty": pct,
+        "Dni z zajęciami": active_days, "Średnio / dzień": avg_day,
+        "per_day": per_day
+    }
+    return cal.to_ical(), f"calendar_{group[-1]}_{week_number}.ics", stats
 
 # Function to get and prepare the calendar for the full semester
 def get_full_semester_calendar(group="Grupa B"):
-    start_of_semester = datetime(2025, 10, 1)
-    end_of_semester = datetime(2026, 2, 28)
-
-    start_week = get_week_number(start_of_semester)
-    end_week = get_week_number(end_of_semester)
-
-    full_cal = Calendar()
-    full_cal.add('prodid', '-//Fizjo-Plan Full Semester//dromaniv.github.io//')
-    full_cal.add('version', '2.0')
-    full_cal.add('X-WR-CALNAME', f'Fizjoterapia semestr zimowy - {group}')
-    full_cal.add('X-WR-TIMEZONE', 'Europe/Warsaw')
-
+    start_of_semester = datetime(2024,10,1); end_of_semester = datetime(2025,2,28)
+    start_week = get_week_number(start_of_semester); end_week = get_week_number(end_of_semester)
+    full_cal = Calendar(); full_cal.add('prodid','-//Fizjo-Plan Full Semester//dromaniv.github.io//'); full_cal.add('version','2.0')
+    full_cal.add('X-WR-CALNAME', f'Fizjoterapia semestr zimowy - {group}'); full_cal.add('X-WR-TIMEZONE','Europe/Warsaw')
     total_weeks = end_week - start_week + 1
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-    empty_weeks = []
-    has_any_events = False
-
+    progress_bar = st.progress(0); status_text = st.empty(); empty_weeks=[]; has_any_events=False
+    counts = {k:0 for k in _DEF_TYPE_KEYS}; per_week_events = {}
     try:
-        for i, week in enumerate(range(start_week, end_week + 1)):
-            status_text.text(f"Pobieranie tygodnia {i + 1}/{total_weeks} ({get_date_from_week_number(week)})")
+        for i, week in enumerate(range(start_week, end_week+1)):
+            status_text.text(f"Pobieranie tygodnia {i+1}/{total_weeks} ({get_date_from_week_number(week)})")
             try:
-                calendar_bytes, _ = get_calendar(week, group)
+                calendar_bytes, _, _week_stats = get_calendar(week, group)
                 cal = Calendar.from_ical(calendar_bytes)  # type: ignore[arg-type]
-                events_in_week = list(cal.walk('vevent'))
-                if not events_in_week:
-                    empty_weeks.append(week)
+                events = list(cal.walk('vevent'))
+                per_week_events[week] = len(events)
+                if not events: empty_weeks.append(week)
                 else:
-                    has_any_events = True
-                    for component in events_in_week:
+                    has_any_events=True
+                    for component in events:
+                        summary = component.get('summary',''); t=_classify(summary)
+                        if t in counts: counts[t]+=1
                         full_cal.add_component(component)
-            except Exception:
-                empty_weeks.append(week)
-            progress_bar.progress((i + 1) / total_weeks)
-        
+            except Exception: empty_weeks.append(week)
+            progress_bar.progress((i+1)/total_weeks)
         if not has_any_events:
-            status_text.error("Brak planu zajęć w całym semestrze :(")
-            return None, None
-
+            status_text.error("Brak planu zajęć w całym semestrze :("); return None,None,None
         if empty_weeks:
-            empty_week_dates = [get_date_from_week_number(w) for w in empty_weeks]
-            st.warning(
-                "Brak danych dla następujących tygodni:\n\n" +
-                "  \n".join(empty_week_dates)  # ⬅ two spaces before \n
-            )
-            status_text.text("")  # Clear the progress text
-        else:
-            status_text.success("Gotowe!")
-
-        return full_cal.to_ical(), f"calendar_semester_{group[-1]}.ics"
+            empty_week_dates=[get_date_from_week_number(w) for w in empty_weeks]
+            st.warning("Brak danych dla następujących tygodni:\n\n"+"  \n".join(empty_week_dates)); status_text.text("")
+        else: status_text.success("Gotowe!")
+        total_events = sum(counts.values()); non_empty = total_weeks - len(empty_weeks)
+        avg_week = round(total_events / non_empty,2) if total_events else 0
+        pct = {k:(round((counts[k]/total_events)*100,1) if total_events else 0.0) for k in counts}
+        stats = {
+            "Zakres": f"{start_of_semester.strftime('%d.%m.%Y')} - {end_of_semester.strftime('%d.%m.%Y')}",
+            "Tygodni (łącznie)": total_weeks, "Tygodni z zajęciami": non_empty,
+            "Puste tygodnie": len(empty_weeks), "Razem": total_events,
+            **counts, "Procenty": pct, "Średnio / tydzień": avg_week,
+            "Max / tydzień": max(per_week_events.values()) if per_week_events else 0,
+            "per_week_events": per_week_events
+        }
+        return full_cal.to_ical(), f"calendar_semester_{group[-1]}.ics", stats
     finally:
         progress_bar.empty()
 
+# --- New visual helpers ---
+
+_DOW_LABELS = ['Pon','Wt','Śr','Czw','Pt','Sob','Nd']
+_DOW_LABELS_FULL = ['Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota','Niedziela']
+
+def _sparkline(values, stroke="#6366f1", fill="#4f46e5"):
+    if not values: return ""
+    w, h = 160, 30
+    if len(values)==1: values = [values[0], values[0]]
+    mx = max(values) or 1
+    step = w/(len(values)-1)
+    points = " ".join(f"{i*step:.2f},{h - (v/mx)*h:.2f}" for i,v in enumerate(values))
+    path = f"M {points}"
+    area = path + f" L {(len(values)-1)*step:.2f},{h} L 0,{h} Z"
+    return f"<svg viewBox='0 0 {w} {h}' preserveAspectRatio='none'><path d='{area}' fill='{fill}33'></path><path d='{path}' fill='none' stroke='{stroke}' stroke-width='2' stroke-linejoin='round' stroke-linecap='round'></path></svg>"
+
+def render_compact_week_stats(stats: dict):
+    if not stats: return
+    pct = stats.get('Procenty', {})
+    html = f"""
+    <div class='pill-stats'>
+      <div class='pill'><span>Razem</span>{stats.get('Razem',0)}</div>
+      <div class='pill tag-w'><span>Wykł.</span>{stats.get('Wykłady',0)} ({pct.get('Wykłady',0)}%)</div>
+      <div class='pill tag-c'><span>Ćw.</span>{stats.get('Ćwiczenia',0)} ({pct.get('Ćwiczenia',0)}%)</div>
+      <div class='pill tag-k'><span>Klin.</span>{stats.get('Kliniczne',0)} ({pct.get('Kliniczne',0)}%)</div>
+      <div class='pill tag-i'><span>Inne</span>{stats.get('Inne',0)} ({pct.get('Inne',0)}%)</div>
+      <div class='pill'><span>Dni</span>{stats.get('Dni z zajęciami',0)}</div>
+      <div class='pill'><span>Śr./dzień</span>{stats.get('Średnio / dzień',0)}</div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+
+
+def render_compact_sem_stats(stats: dict):
+    if not stats: return
+    pct = stats.get('Procenty', {})
+    html = f"""
+    <div class='pill-stats'>
+      <div class='pill'><span>Tyg.</span>{stats.get('Tygodni (łącznie)',0)}</div>
+      <div class='pill'><span>Z zaj.</span>{stats.get('Tygodni z zajęciami',0)}</div>
+      <div class='pill'><span>Puste</span>{stats.get('Puste tygodnie',0)}</div>
+      <div class='pill'><span>Razem</span>{stats.get('Razem',0)}</div>
+      <div class='pill tag-w'><span>Wykł.</span>{stats.get('Wykłady',0)} ({pct.get('Wykłady',0)}%)</div>
+      <div class='pill tag-c'><span>Ćw.</span>{stats.get('Ćwiczenia',0)} ({pct.get('Ćwiczenia',0)}%)</div>
+      <div class='pill tag-k'><span>Klin.</span>{stats.get('Kliniczne',0)} ({pct.get('Kliniczne',0)}%)</div>
+      <div class='pill tag-i'><span>Inne</span>{stats.get('Inne',0)} ({pct.get('Inne',0)}%)</div>
+      <div class='pill'><span>Śr./tydz.</span>{stats.get('Średnio / tydzień',0)}</div>
+      <div class='pill'><span>Max/tydz.</span>{stats.get('Max / tydzień',0)}</div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+
+
+def render_week_insights(stats: dict):
+    if not stats: return
+    per_day = stats.get('per_day', {})
+    total = stats.get('Razem',0)
+    if not total: return
+    max_day_idx = max(per_day, key=lambda k: per_day[k]) if per_day else None
+    busiest = _DOW_LABELS_FULL[max_day_idx] if max_day_idx is not None and per_day[max_day_idx]>0 else '—'
+    pcts = stats.get('Procenty', {})
+    sentence = (
+        f"{total} wydarzenia" if total in (2,3,4) else f"{total} wydarzeń"
+    )
+    summary = (
+        f"{sentence} w {stats.get('Dni z zajęciami',0)} dniach.\n\nNajbardziej obciążony dzień: {busiest}.\n\n"
+        f"Struktura: wykł. {pcts.get('Wykłady',0)}%, ćw. {pcts.get('Ćwiczenia',0)}%, klin. {pcts.get('Kliniczne',0)}%, inne {pcts.get('Inne',0)}%."
+    )
+    # Daily bars
+    maxv = max(per_day.values()) if per_day else 1
+    day_bars = []
+    for i,label in enumerate(_DOW_LABELS):
+        v = per_day.get(i,0)
+        h = 6 + ( (v / maxv) * 26 if maxv else 0 )
+        cls = 'bar busy' if i==max_day_idx and v>0 else 'bar'
+        day_bars.append(f"<div class='{cls}' style='height:{h}px'><span>{v}</span></div>")
+    bars_html = "<div class='mini-bars'>"+"".join(day_bars)+"</div>"
+    st.markdown(
+        f"""
+        <div class='insight-card'>
+          <h4>Tydzień: {stats.get('date_range','')}</h4>
+          <div>{summary}</div>
+          {bars_html}
+          <div class='insight-meta'>Dni aktywne: {stats.get('Dni z zajęciami',0)} • Średnio/dzień: {stats.get('Średnio / dzień',0)}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+def render_sem_insights(stats: dict):
+    if not stats: return
+    total = stats.get('Razem',0)
+    if not total: return
+    pct = stats.get('Procenty', {})
+    per_week = stats.get('per_week_events', {})
+    ordered_counts = [per_week[w] for w in sorted(per_week.keys())]
+    spark = _sparkline(ordered_counts)
+    non_empty = stats.get('Tygodni z zajęciami',0)
+    summary = (f"{total} zajęć w {non_empty} tygodniach aktywnych.\n\n  "
+               f"Średnio {stats.get('Średnio / tydzień',0)} / tydz. (max {stats.get('Max / tydzień',0)}).\n\n"
+               f"Struktura: wykł. {pct.get('Wykłady',0)}%, ćw. {pct.get('Ćwiczenia',0)}%, klin. {pct.get('Kliniczne',0)}%, inne {pct.get('Inne',0)}%.")
+    st.markdown(
+        f"""
+        <div class='insight-card'>
+          <h4>Semestr: {stats.get('Zakres','')}</h4>
+          <div>{summary}</div>
+          <div class='sparkline'>{spark}</div>
+          <div class='insight-meta'>Puste tyg.: {stats.get('Puste tygodnie',0)} • Tyg. łącznie: {stats.get('Tygodni (łącznie)',0)}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # Streamlit app configuration
 st.set_page_config(page_title="Plan zajęć", page_icon="📅")
@@ -257,35 +403,36 @@ if option == 'Cały tydzień':
         week = get_week_number(date)
         try:
             with st.spinner("Pobieranie danych..."):
-                calendar_bytes, calendar_filename = get_calendar(week, group)
-        except Exception as e:
-            st.error("Brak planu zajęć w wybranym tygodniu :(")
-            st.stop()
-        
+                calendar_bytes, calendar_filename, week_stats = get_calendar(week, group)
+        except Exception:
+            st.error("Brak planu zajęć w wybranym tygodniu :("); st.stop()
         if calendar_bytes:
-            if download_btn_placeholder.download_button(
-                label=":rainbow[Pobierz / Importuj]",
-                data=calendar_bytes,
-                file_name=calendar_filename,
-                mime="text/calendar",
-                key="week_download"
-            ):
+            if download_btn_placeholder.download_button(label=":rainbow[Pobierz / Importuj]", data=calendar_bytes, file_name=calendar_filename, mime="text/calendar", key="week_download"):
                 st.balloons()
+            render_compact_week_stats(week_stats)
+            render_week_insights(week_stats)
+            # if week_stats and week_stats.get("Razem"):
+            #     with st.expander("Szczegóły liczbowe", expanded=False):
+            #         cols = st.columns(6)
+            #         metric_order = ["Razem","Wykłady","Ćwiczenia","Kliniczne","Inne","Dni z zajęciami"]
+            #         for col, key_ in zip(cols, metric_order): col.metric(key_, week_stats.get(key_,0))
         else:
             st.error("Nie udało się pobrać planu zajęć")
 elif option == 'Cały semestr (01.10 - 28.02)':
     if group:
         try:
-            calendar_bytes, calendar_filename = get_full_semester_calendar(group)
+            calendar_bytes, calendar_filename, sem_stats = get_full_semester_calendar(group)
             if calendar_bytes:
-                if st.download_button(
-                    label=":rainbow[Pobierz / Importuj]",
-                    data=calendar_bytes,
-                    file_name=calendar_filename,
-                    mime="text/calendar",
-                    key="semester_download"
-                ):
+                if st.download_button(label=":rainbow[Pobierz / Importuj]", data=calendar_bytes, file_name=calendar_filename, mime="text/calendar", key="semester_download"):
                     st.balloons()
+                render_compact_sem_stats(sem_stats)
+                render_sem_insights(sem_stats)
+                # if sem_stats and sem_stats.get("Razem"):
+                #     with st.expander("Szczegóły liczbowe", expanded=False):
+                #         row1 = st.columns(5)
+                #         for col,key_ in zip(row1,["Razem","Wykłady","Ćwiczenia","Kliniczne","Inne"]): col.metric(key_, sem_stats.get(key_,0))
+                #         row2 = st.columns(5)
+                #         for col,key_ in zip(row2,["Tygodni (łącznie)","Tygodni z zajęciami","Puste tygodnie","Średnio / tydzień","Max / tydzień"]): col.metric(key_, sem_stats.get(key_,0))
         except Exception as e:
             st.error(f"Wystąpił błąd: {e}")
     else:
