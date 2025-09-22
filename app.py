@@ -74,52 +74,117 @@ def inject_global_css():
         label, .stSelectbox label, .stRadio label, .stDateInput label {{
             margin-bottom: 0.125rem !important;
         }}
+        
+        /* LIGHT THEME */
         /* Compact pill stats with reduced spacing */
         .pill-stats {{
             display:flex; flex-wrap:wrap; gap:.35rem; margin:.25rem 0 .5rem 0;
         }}
         .pill-stats .pill {{
-            background:#f1f5f9; color:#111; border:1px solid #e2e8f0; border-radius:999px;
+            background:#f8fafc; color:#1e293b; border:1px solid #e2e8f0; border-radius:999px;
             padding:.3rem .75rem; font-size:.8rem; font-weight:600; letter-spacing:.25px; display:inline-flex; align-items:center;
-            box-shadow:0 1px 1px rgba(0,0,0,.04);
+            box-shadow:0 1px 3px rgba(0,0,0,.1);
         }}
-        .pill-stats .pill span {{ opacity:.65; font-weight:500; margin-right:.3rem; }}
-        .pill.tag-w {{ background:#e2e8f0; }}
-        .pill.tag-c {{ background:#ffe4e6; }}
-        .pill.tag-k {{ background:#e0f2fe; }}
-        .pill.tag-i {{ background:#fde4cf; }}
+        .pill-stats .pill span {{ opacity:.7; font-weight:500; margin-right:.3rem; }}
+        .pill.tag-w {{ background:#e2e8f0; color:#475569; }}
+        .pill.tag-c {{ background:#ffe4e6; color:#be185d; }}
+        .pill.tag-k {{ background:#e0f2fe; color:#0369a1; }}
+        .pill.tag-i {{ background:#fde4cf; color:#c2410c; }}
+        
+        /* Light theme insight cards */
         .insight-card {{
-            background:linear-gradient(145deg,#1e293b 0%,#0f172a 90%); color:#f1f5f9; padding:.8rem 1rem; border:1px solid #334155; border-radius:14px; margin:.3rem 0 .8rem 0; position:relative; overflow:hidden;
+            background:linear-gradient(145deg,#ffffff 0%,#f8fafc 90%); 
+            color:#1e293b; 
+            padding:.8rem 1rem; 
+            border:1px solid #e2e8f0; 
+            border-radius:14px; 
+            margin:.3rem 0 .8rem 0; 
+            position:relative; 
+            overflow:hidden;
+            box-shadow:0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -1px rgba(0,0,0,.06);
         }}
         .insight-card:before {{
-            content:""; position:absolute; inset:0; background:radial-gradient(circle at 85% -10%,rgba(99,102,241,.25),transparent 60%); pointer-events:none;
+            content:""; position:absolute; inset:0; 
+            background:radial-gradient(circle at 85% -10%,rgba(99,102,241,.08),transparent 60%); 
+            pointer-events:none;
         }}
-        .insight-card h4 {{ margin:0 0 .3rem 0; font-size:1.05rem; letter-spacing:.5px; }}
+        .insight-card h4 {{ margin:0 0 .3rem 0; font-size:1.05rem; letter-spacing:.5px; color:#0f172a; }}
         .insight-card > div:not(.insight-meta):not(.mini-bars):not(.sparkline) {{ font-size: 1rem !important; }}
-        .insight-meta {{ display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.4rem; font-size:.7rem; opacity:.85; text-transform:uppercase; letter-spacing:.6px; }}
+        .insight-meta {{ 
+            display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.4rem; 
+            font-size:.7rem; opacity:.7; text-transform:uppercase; letter-spacing:.6px; 
+            color:#64748b;
+        }}
         .sparkline {{ height:32px; margin:.25rem 0 .15rem 0; }}
         .sparkline svg {{ width:100%; height:32px; overflow:visible; }}
         .mini-bars {{ display:flex; gap:3px; align-items:flex-end; height:32px; }}
-        .mini-bars .bar {{ flex:1; background:linear-gradient(180deg,#4f46e5,#6366f1); border-radius:3px 3px 2px 2px; position:relative; }}
-        .mini-bars .bar span {{ position:absolute; top:-13px; left:50%; transform:translateX(-50%); font-size:.55rem; font-weight:500; color:#94a3b8; }}
-        .mini-bars .bar.busy {{ background:linear-gradient(180deg,#dc2626,#f87171); }}
+        .mini-bars .bar {{ 
+            flex:1; 
+            background:linear-gradient(180deg,#6366f1,#4f46e5); 
+            border-radius:3px 3px 2px 2px; 
+            position:relative; 
+        }}
+        .mini-bars .bar span {{ 
+            position:absolute; top:-13px; left:50%; transform:translateX(-50%); 
+            font-size:.55rem; font-weight:500; color:#64748b; 
+        }}
+        .mini-bars .bar.busy {{ background:linear-gradient(180deg,#ef4444,#dc2626); }}
         .pct-badges {{ display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.35rem; }}
-        .pct-badges .pct {{ font-size:.65rem; padding:.2rem .5rem; border-radius:6px; background:#334155; color:#e2e8f0; letter-spacing:.4px; }}
+        .pct-badges .pct {{ 
+            font-size:.65rem; padding:.2rem .5rem; border-radius:6px; 
+            background:#e2e8f0; color:#475569; letter-spacing:.4px; 
+        }}
         /* Progress bar and status text - better targeting */
         .stProgress, .stProgress *, [data-testid="stProgress"], 
         .stProgress .stMarkdown, .element-container .stProgress *,
         .st-emotion-cache-183lzff, [class*="st-emotion-cache"] {{
             font-size: 1rem !important;
         }}
+        .expander-stats > div {{ background:rgba(241,245,249,.5); }}
+        
+        /* DARK THEME */
         @media (prefers-color-scheme: dark) {{
-          .pill-stats .pill {{ background:#1e293b; color:#f1f5f9; border-color:#334155; }}
-          .pill.tag-w {{ background:#334155; }}
-          .pill.tag-c {{ background:#4c1d1d; }}
-          .pill.tag-k {{ background:#1e3a5f; }}
-          .pill.tag-i {{ background:#513626; }}
-          .pill-stats .pill span {{ color:#cbd5e1; opacity:1; }}
+          /* Pills in dark mode */
+          .pill-stats .pill {{ 
+            background:#1e293b; color:#f1f5f9; border-color:#334155; 
+            box-shadow:0 1px 3px rgba(0,0,0,.3);
+          }}
+          .pill.tag-w {{ background:#334155; color:#cbd5e1; }}
+          .pill.tag-c {{ background:#4c1d1d; color:#fca5a5; }}
+          .pill.tag-k {{ background:#1e3a5f; color:#7dd3fc; }}
+          .pill.tag-i {{ background:#513626; color:#fdba74; }}
+          .pill-stats .pill span {{ color:#cbd5e1; opacity:.8; }}
+          
+          /* Dark theme insight cards */
+          .insight-card {{
+            background:linear-gradient(145deg,#1e293b 0%,#0f172a 90%); 
+            color:#f1f5f9; 
+            border-color:#334155;
+            box-shadow:0 4px 6px -1px rgba(0,0,0,.4), 0 2px 4px -1px rgba(0,0,0,.3);
+          }}
+          .insight-card:before {{
+            background:radial-gradient(circle at 85% -10%,rgba(99,102,241,.25),transparent 60%);
+          }}
+          .insight-card h4 {{ color:#f1f5f9; }}
+          .insight-meta {{ color:#94a3b8; opacity:.85; }}
+          .mini-bars .bar span {{ color:#94a3b8; }}
+          .pct-badges .pct {{ background:#334155; color:#e2e8f0; }}
+          .expander-stats > div {{ background:rgba(15,23,42,.55); }}
         }}
-        .expander-stats > div {{ background:#0f172a55; }}
+        
+        /* Additional Streamlit theme support */
+        [data-theme="light"] .insight-card,
+        .stApp[data-theme="light"] .insight-card {{
+            background:linear-gradient(145deg,#ffffff 0%,#f8fafc 90%); 
+            color:#1e293b; 
+            border-color:#e2e8f0;
+        }}
+        [data-theme="dark"] .insight-card,
+        .stApp[data-theme="dark"] .insight-card {{
+            background:linear-gradient(145deg,#1e293b 0%,#0f172a 90%); 
+            color:#f1f5f9; 
+            border-color:#334155;
+        }}
         </style>
     """, unsafe_allow_html=True)
 
@@ -234,7 +299,7 @@ def get_full_semester_calendar(group="Grupa B"):
             except Exception: empty_weeks.append(week)
             progress_bar.progress((i+1)/total_weeks)
         if not has_any_events:
-            status_text.error("Brak planu zajęć w całym semestrze :("); return None,None,None
+            status_text.error("Brak planu zajęć dla semestru :("); return None,None,None
         if empty_weeks:
             empty_week_dates=[get_date_from_week_number(w) for w in empty_weeks]
             st.warning("Brak danych dla następujących tygodni:\n\n"+"  \n".join(empty_week_dates)); status_text.text("")
@@ -397,7 +462,7 @@ if option == 'Cały tydzień':
             with st.spinner("Pobieranie danych..."):
                 calendar_bytes, calendar_filename, week_stats = get_calendar(week, group)
         except Exception:
-            st.error("Brak planu zajęć w wybranym tygodniu :("); st.stop()
+            st.error("Brak danych dla tego tygodnia :("); st.stop()
         if calendar_bytes:
             if download_btn_placeholder.download_button(label=":rainbow[Pobierz / Importuj]", data=calendar_bytes, file_name=calendar_filename, mime="text/calendar", key="week_download"):
                 st.balloons()
