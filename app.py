@@ -369,7 +369,7 @@ def get_full_semester_calendar(group="Grupa B"):
                 f"Pobieranie tygodnia {i+1}/{total_weeks} ({get_date_from_week_number(week)})"
             )
             try:
-                calendar_bytes, _, _week_stats = get_calendar(week, group)
+                calendar_bytes, _, week_stats = get_calendar(week, group)
                 cal = Calendar.from_ical(calendar_bytes)  # type: ignore[arg-type]
                 events = list(cal.walk("vevent"))
                 per_week_events[week] = len(events)
@@ -377,11 +377,11 @@ def get_full_semester_calendar(group="Grupa B"):
                     empty_weeks.append(week)
                 else:
                     has_any_events = True
+                    # Use the week_stats that were already calculated correctly
+                    for category in _DEF_TYPE_KEYS:
+                        if category in week_stats:
+                            counts[category] += week_stats[category]
                     for component in events:
-                        summary = component.get("summary", "")
-                        t = _classify(summary)
-                        if t in counts:
-                            counts[t] += 1
                         full_cal.add_component(component)
             except Exception:
                 empty_weeks.append(week)
