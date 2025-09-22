@@ -202,7 +202,7 @@ def get_calendar(week_number, group="Grupa B"):
 
 # Function to get and prepare the calendar for the full semester
 def get_full_semester_calendar(group="Grupa B"):
-    start_of_semester = datetime(2024,10,1); end_of_semester = datetime(2025,2,28)
+    start_of_semester = datetime(2025,10,1); end_of_semester = datetime(2026,2,28)
     start_week = get_week_number(start_of_semester); end_week = get_week_number(end_of_semester)
     full_cal = Calendar(); full_cal.add('prodid','-//Fizjo-Plan Full Semester//dromaniv.github.io//'); full_cal.add('version','2.0')
     full_cal.add('X-WR-CALNAME', f'Fizjoterapia semestr zimowy - {group}'); full_cal.add('X-WR-TIMEZONE','Europe/Warsaw')
@@ -380,8 +380,7 @@ option = st.radio(
 if option == 'Cały tydzień':
     date = st.date_input(
         "Wybierz tydzień:",
-        value=datetime.now(),
-        help=f"Zakres dni: {get_date_from_week_number(get_week_number(datetime.now()))}"
+        value=datetime.now()
     )
 
     download_btn_placeholder = st.empty()
