@@ -45,7 +45,7 @@ def inject_global_css():
         /* Headings - reduced spacing and smaller title font */
         h1, .stMarkdown h1, .stApp > div > div > div > h1, 
         [data-testid="stHeader"] h1, .element-container h1 {{
-            font-size: 1.4rem !important;
+            font-size: 1.2rem !important;
             margin-bottom: 0.5rem !important;
             margin-top: 0.5rem !important;
         }}
@@ -104,6 +104,12 @@ def inject_global_css():
         .mini-bars .bar.busy {{ background:linear-gradient(180deg,#dc2626,#f87171); }}
         .pct-badges {{ display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.35rem; }}
         .pct-badges .pct {{ font-size:.65rem; padding:.2rem .5rem; border-radius:6px; background:#334155; color:#e2e8f0; letter-spacing:.4px; }}
+        /* Progress bar and status text - better targeting */
+        .stProgress, .stProgress *, [data-testid="stProgress"], 
+        .stProgress .stMarkdown, .element-container .stProgress *,
+        .st-emotion-cache-183lzff, [class*="st-emotion-cache"] {{
+            font-size: 0.6rem !important;
+        }}
         @media (prefers-color-scheme: dark) {{
           .pill-stats .pill {{ background:#1e293b; color:#f1f5f9; border-color:#334155; }}
           .pill.tag-w {{ background:#334155; }}
