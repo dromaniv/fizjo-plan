@@ -95,6 +95,7 @@ def inject_global_css():
             content:""; position:absolute; inset:0; background:radial-gradient(circle at 85% -10%,rgba(99,102,241,.25),transparent 60%); pointer-events:none;
         }}
         .insight-card h4 {{ margin:0 0 .3rem 0; font-size:1.05rem; letter-spacing:.5px; }}
+        .insight-card > div {{ font-size: 1rem !important; }}
         .insight-meta {{ display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.4rem; font-size:.7rem; opacity:.85; text-transform:uppercase; letter-spacing:.6px; }}
         .sparkline {{ height:32px; margin:.25rem 0 .15rem 0; }}
         .sparkline svg {{ width:100%; height:32px; overflow:visible; }}
