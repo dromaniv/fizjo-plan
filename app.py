@@ -137,8 +137,9 @@ def inject_global_css():
         /* Progress bar and status text - better targeting */
         .stProgress, .stProgress *, [data-testid="stProgress"], 
         .stProgress .stMarkdown, .element-container .stProgress *,
-        .st-emotion-cache-183lzff, [class*="st-emotion-cache"] {{
-            font-size: 1rem !important;
+        .stProgress [class*="st-emotion-cache"],
+        .st-emotion-cache-183lzff {{
+            font-size: 0.6rem !important;
         }}
         .expander-stats > div {{ background:rgba(241,245,249,.5); }}
         
