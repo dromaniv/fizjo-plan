@@ -13,111 +13,97 @@ with open("legend.yaml", "r") as file:
 # --- Revised: global font size injection (static, no sidebar) ---
 
 def inject_global_css():
-    """Inject global CSS with a fixed larger font size (no user control)."""
-    base_size = 18
+    """Inject global CSS with essential styling only (no font size overrides)."""
     st.markdown(f"""
         <style>
-        :root {{ --base-font-size: {base_size}px; }}
-        .stApp, .stApp * {{ font-size: var(--base-font-size) !important; }}
-        /* Existing spacing rules ... */
+        /* Reduced spacing rules */
         .element-container {{
-            margin-bottom: 0.5rem !important;
-            margin-top: 0.25rem !important;
+            margin-bottom: 0.25rem !important;
+            margin-top: 0.125rem !important;
         }}
         .stSelectbox, .stRadio, .stDateInput {{
-            margin-bottom: 0.5rem !important;
-            margin-top: 0.25rem !important;
+            margin-bottom: 0.25rem !important;
+            margin-top: 0.125rem !important;
         }}
         /* Increase spacing between radio button options */
         .stRadio > div > label {{
             margin-right: 2rem !important;
         }}
         .stButton {{
-            margin-top: 0.5rem !important;
-            margin-bottom: 0.25rem !important;
+            margin-top: 0.25rem !important;
+            margin-bottom: 0.125rem !important;
         }}
         .stAlert {{
-            margin-top: 0.5rem !important;
-            margin-bottom: 0.5rem !important;
+            margin-top: 0.25rem !important;
+            margin-bottom: 0.25rem !important;
         }}
         /* Add padding to main content */
         .main .block-container {{
-            padding-top: 0.5rem !important;
-            padding-bottom: 0.5rem !important;
+            padding-top: 0.25rem !important;
+            padding-bottom: 0.25rem !important;
         }}
-        /* Headings - more specific targeting */
+        /* Headings - reduced spacing and smaller title font */
         h1, .stMarkdown h1, .stApp > div > div > div > h1, 
         [data-testid="stHeader"] h1, .element-container h1 {{
-            font-size: calc(var(--base-font-size) * 1.8) !important;
-            margin-bottom: 0.75rem !important;
-            margin-top: 0.5rem !important;
-        }}
-        h2, .stMarkdown h2 {{
-            font-size: calc(var(--base-font-size) * 1.7) !important;
+            font-size: 1.4rem !important;
             margin-bottom: 0.5rem !important;
             margin-top: 0.5rem !important;
         }}
-        h3, .stMarkdown h3 {{
-            font-size: calc(var(--base-font-size) * 1.35) !important;
+        h2, .stMarkdown h2 {{
             margin-bottom: 0.25rem !important;
             margin-top: 0.25rem !important;
         }}
+        h3, .stMarkdown h3 {{
+            margin-bottom: 0.125rem !important;
+            margin-top: 0.125rem !important;
+        }}
         /* Buttons */
         .stButton button, .stDownloadButton button {{
-            font-size: calc(var(--base-font-size) * 1.1) !important;
-            padding: 1rem 1.5rem !important;
+            padding: 0.75rem 1.25rem !important;
         }}
         /* Make download buttons full width like alerts */
         .stDownloadButton button {{
             width: 100% !important;
-            font-size: calc(var(--base-font-size) * 1.2) !important;
-            padding: 1.25rem 1.5rem !important;
+            padding: 1rem 1.25rem !important;
+        }}
+        /* Padding below download button */
+        .stDownloadButton {{
+            margin-bottom: 1.25rem !important;
         }}
         /* Inputs labels */
         label, .stSelectbox label, .stRadio label, .stDateInput label {{
-            font-size: calc(var(--base-font-size) * 1.05) !important;
-            margin-bottom: 0.25rem !important;
+            margin-bottom: 0.125rem !important;
         }}
-        /* Alerts */
-        .stAlert p {{
-            font-size: calc(var(--base-font-size) * 1.0) !important;
-        }}
-        /* Progress bar and status text - better targeting */
-        .stProgress, .stProgress *, [data-testid="stProgress"], 
-        .stProgress .stMarkdown, .element-container .stProgress *,
-        .st-emotion-cache-183lzff, [class*="st-emotion-cache"] {{
-            font-size: calc(var(--base-font-size) * 0.9) !important;
-        }}
-        /* Compact pill stats */
+        /* Compact pill stats with reduced spacing */
         .pill-stats {{
-            display:flex; flex-wrap:wrap; gap:.45rem; margin:.5rem 0 .75rem 0;
+            display:flex; flex-wrap:wrap; gap:.35rem; margin:.25rem 0 .5rem 0;
         }}
         .pill-stats .pill {{
             background:#f1f5f9; color:#111; border:1px solid #e2e8f0; border-radius:999px;
-            padding:.35rem .85rem; font-size:.8rem; font-weight:600; letter-spacing:.25px; display:inline-flex; align-items:center;
+            padding:.3rem .75rem; font-size:.8rem; font-weight:600; letter-spacing:.25px; display:inline-flex; align-items:center;
             box-shadow:0 1px 1px rgba(0,0,0,.04);
         }}
-        .pill-stats .pill span {{ opacity:.65; font-weight:500; margin-right:.35rem; }}
+        .pill-stats .pill span {{ opacity:.65; font-weight:500; margin-right:.3rem; }}
         .pill.tag-w {{ background:#e2e8f0; }}
         .pill.tag-c {{ background:#ffe4e6; }}
         .pill.tag-k {{ background:#e0f2fe; }}
         .pill.tag-i {{ background:#fde4cf; }}
         .insight-card {{
-            background:linear-gradient(145deg,#1e293b 0%,#0f172a 90%); color:#f1f5f9; padding:1rem 1.1rem; border:1px solid #334155; border-radius:14px; margin:.5rem 0 1.1rem 0; position:relative; overflow:hidden;
+            background:linear-gradient(145deg,#1e293b 0%,#0f172a 90%); color:#f1f5f9; padding:.8rem 1rem; border:1px solid #334155; border-radius:14px; margin:.3rem 0 .8rem 0; position:relative; overflow:hidden;
         }}
         .insight-card:before {{
             content:""; position:absolute; inset:0; background:radial-gradient(circle at 85% -10%,rgba(99,102,241,.25),transparent 60%); pointer-events:none;
         }}
-        .insight-card h4 {{ margin:0 0 .4rem 0; font-size:1.05rem; letter-spacing:.5px; }}
-        .insight-meta {{ display:flex; flex-wrap:wrap; gap:.65rem; margin-top:.55rem; font-size:.7rem; opacity:.85; text-transform:uppercase; letter-spacing:.6px; }}
-        .sparkline {{ height:38px; margin:.35rem 0 .2rem 0; }}
-        .sparkline svg {{ width:100%; height:38px; overflow:visible; }}
-        .mini-bars {{ display:flex; gap:4px; align-items:flex-end; height:38px; }}
-        .mini-bars .bar {{ flex:1; background:linear-gradient(180deg,#4f46e5,#6366f1); border-radius:4px 4px 2px 2px; position:relative; }}
-        .mini-bars .bar span {{ position:absolute; top:-15px; left:50%; transform:translateX(-50%); font-size:.55rem; font-weight:500; color:#94a3b8; }}
+        .insight-card h4 {{ margin:0 0 .3rem 0; font-size:1.05rem; letter-spacing:.5px; }}
+        .insight-meta {{ display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.4rem; font-size:.7rem; opacity:.85; text-transform:uppercase; letter-spacing:.6px; }}
+        .sparkline {{ height:32px; margin:.25rem 0 .15rem 0; }}
+        .sparkline svg {{ width:100%; height:32px; overflow:visible; }}
+        .mini-bars {{ display:flex; gap:3px; align-items:flex-end; height:32px; }}
+        .mini-bars .bar {{ flex:1; background:linear-gradient(180deg,#4f46e5,#6366f1); border-radius:3px 3px 2px 2px; position:relative; }}
+        .mini-bars .bar span {{ position:absolute; top:-13px; left:50%; transform:translateX(-50%); font-size:.55rem; font-weight:500; color:#94a3b8; }}
         .mini-bars .bar.busy {{ background:linear-gradient(180deg,#dc2626,#f87171); }}
-        .pct-badges {{ display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.45rem; }}
-        .pct-badges .pct {{ font-size:.65rem; padding:.25rem .55rem; border-radius:6px; background:#334155; color:#e2e8f0; letter-spacing:.4px; }}
+        .pct-badges {{ display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.35rem; }}
+        .pct-badges .pct {{ font-size:.65rem; padding:.2rem .5rem; border-radius:6px; background:#334155; color:#e2e8f0; letter-spacing:.4px; }}
         @media (prefers-color-scheme: dark) {{
           .pill-stats .pill {{ background:#1e293b; color:#f1f5f9; border-color:#334155; }}
           .pill.tag-w {{ background:#334155; }}
