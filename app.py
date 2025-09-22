@@ -109,7 +109,7 @@ def inject_global_css():
         .stProgress, .stProgress *, [data-testid="stProgress"], 
         .stProgress .stMarkdown, .element-container .stProgress *,
         .st-emotion-cache-183lzff, [class*="st-emotion-cache"] {{
-            font-size: 0.6rem !important;
+            font-size: 1rem !important;
         }}
         @media (prefers-color-scheme: dark) {{
           .pill-stats .pill {{ background:#1e293b; color:#f1f5f9; border-color:#334155; }}
