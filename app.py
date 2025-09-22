@@ -27,6 +27,7 @@ def get_date_from_week_number(week_number):
 
 
 # Function to get and prepare the calendar for download
+@st.cache_data(ttl=28800, show_spinner=False)
 def get_calendar(week_number, group="Grupa B"):
     # Construct the URL
     url = f"http://web0.awf.poznan.pl/plan/plan.php?type=NaN&id=95765&cvsfile=true&w={week_number}"
@@ -84,8 +85,8 @@ def get_calendar(week_number, group="Grupa B"):
 
 # Function to get and prepare the calendar for the full semester
 def get_full_semester_calendar(group="Grupa B"):
-    start_of_semester = datetime(2024, 10, 1)
-    end_of_semester = datetime(2025, 2, 28)
+    start_of_semester = datetime(2025, 10, 1)
+    end_of_semester = datetime(2026, 2, 28)
 
     start_week = get_week_number(start_of_semester)
     end_week = get_week_number(end_of_semester)
@@ -102,34 +103,40 @@ def get_full_semester_calendar(group="Grupa B"):
     empty_weeks = []
     has_any_events = False
 
-    for i, week in enumerate(range(start_week, end_week + 1)):
-        status_text.text(f"Pobieranie tygodnia {i + 1}/{total_weeks} ({get_date_from_week_number(week)})")
-        try:
-            calendar_bytes, _ = get_calendar(week, group)
-            cal = Calendar.from_ical(calendar_bytes)
-            events_in_week = list(cal.walk('vevent'))
-            if not events_in_week:
+    try:
+        for i, week in enumerate(range(start_week, end_week + 1)):
+            status_text.text(f"Pobieranie tygodnia {i + 1}/{total_weeks} ({get_date_from_week_number(week)})")
+            try:
+                calendar_bytes, _ = get_calendar(week, group)
+                cal = Calendar.from_ical(calendar_bytes)
+                events_in_week = list(cal.walk('vevent'))
+                if not events_in_week:
+                    empty_weeks.append(week)
+                else:
+                    has_any_events = True
+                    for component in events_in_week:
+                        full_cal.add_component(component)
+            except Exception:
                 empty_weeks.append(week)
-            else:
-                has_any_events = True
-                for component in events_in_week:
-                    full_cal.add_component(component)
-        except Exception:
-            empty_weeks.append(week)
-        progress_bar.progress((i + 1) / total_weeks)
-    
-    if not has_any_events:
-        status_text.error("Brak planu zajęć w całym semestrze.")
-        return None, None
+            progress_bar.progress((i + 1) / total_weeks)
+        
+        if not has_any_events:
+            status_text.error("Brak planu zajęć w całym semestrze.")
+            return None, None
 
-    if empty_weeks:
-        empty_week_dates = [get_date_from_week_number(w) for w in empty_weeks]
-        st.warning(f"Nie udało się pobrać planu dla tygodni: {', '.join(empty_week_dates)}")
-        status_text.text("")  # Clear the progress text
-    else:
-        status_text.success("Gotowe!")
+        if empty_weeks:
+            empty_week_dates = [get_date_from_week_number(w) for w in empty_weeks]
+            st.warning(
+                "Brak danych dla następujących tygodni:\n\n" +
+                "  \n".join(empty_week_dates)  # ⬅ two spaces before \n
+            )
+            status_text.text("")  # Clear the progress text
+        else:
+            status_text.success("Gotowe!")
 
-    return full_cal.to_ical(), f"calendar_semester_{group[-1]}.ics"
+        return full_cal.to_ical(), f"calendar_semester_{group[-1]}.ics"
+    finally:
+        progress_bar.empty()
 
 
 # Streamlit app configuration
@@ -144,12 +151,17 @@ group = st.selectbox(
 
 option = st.radio(
     "Wybierz zakres planu:",
-    ('Jeden tydzień', 'Cały semestr (01.10 - 28.02)'),
+    ('Cały tydzień', 'Cały semestr (01.10 - 28.02)'),
     horizontal=True,
 )
 
-if option == 'Jeden tydzień':
-    date = st.date_input("Wybierz tydzień:", datetime.now())
+if option == 'Cały tydzień':
+    date = st.date_input(
+        "Wybierz tydzień:",
+        value=datetime.now(),
+        help=f"Zakres dni: {get_date_from_week_number(get_week_number(datetime.now()))}"
+    )
+
     download_btn_placeholder = st.empty()
     if group:
         week = get_week_number(date)
@@ -166,30 +178,30 @@ if option == 'Jeden tydzień':
                 data=calendar_bytes,
                 file_name=calendar_filename,
                 mime="text/calendar",
+                key="week_download"
             ):
                 st.balloons()
         else:
             st.error("Nie udało się pobrać planu zajęć")
-else: # Cały semestr
-    st.info("Opcja pobierze plan zajęć dla całego semestru zimowego.")
-    if st.button("Rozpocznij pobieranie"):
-        if group:
-            try:
-                calendar_bytes, calendar_filename = get_full_semester_calendar(group)
-                if calendar_bytes:
-                    st.download_button(
-                        label=":rainbow[Pobierz / Importuj cały semestr]",
-                        data=calendar_bytes,
-                        file_name=calendar_filename,
-                        mime="text/calendar",
-                        key="semester_download"
-                    )
+elif option == 'Cały semestr (01.10 - 28.02)':
+    if group:
+        try:
+            calendar_bytes, calendar_filename = get_full_semester_calendar(group)
+            if calendar_bytes:
+                if st.download_button(
+                    label=":rainbow[Pobierz / Importuj]",
+                    data=calendar_bytes,
+                    file_name=calendar_filename,
+                    mime="text/calendar",
+                    key="semester_download"
+                ):
                     st.balloons()
-                # If calendar_bytes is None, the error is already handled in get_full_semester_calendar
-            except Exception as e:
-                st.error(f"Wystąpił błąd: {e}")
-        else:
-            st.warning("Proszę wybrać grupę.")
-
+            # If calendar_bytes is None, the error is already handled in get_full_semester_calendar
+        except Exception as e:
+            st.error(f"Wystąpił błąd: {e}")
+    else:
+        st.warning("Proszę wybrać grupę.")
+else:
+    st.warning("Proszę wybrać zakres.")
 
 st.markdown("<br>", unsafe_allow_html=True)
