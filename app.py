@@ -10,6 +10,34 @@ with open("legend.yaml", "r") as file:
     data = yaml.safe_load(file)
     legend = data["abbreviations"]
 
+# --- New: global font size injection ---
+
+def inject_global_css(base_size: int = 19):
+    """Inject global CSS to enlarge (and optionally scale) all text elements."""
+    st.markdown(f"""
+        <style>
+        :root {{
+            --base-font-size: {base_size}px;
+        }}
+        /* Global font size */
+        .stApp, .stApp * {{
+            font-size: var(--base-font-size) !important;
+        }}
+        /* Headings */
+        h1, .stMarkdown h1 {{font-size: calc(var(--base-font-size) * 2.0) !important;}}
+        h2, .stMarkdown h2 {{font-size: calc(var(--base-font-size) * 1.6) !important;}}
+        h3, .stMarkdown h3 {{font-size: calc(var(--base-font-size) * 1.3) !important;}}
+        /* Buttons */
+        .stButton button, .stDownloadButton button {{font-size: calc(var(--base-font-size) * 1.05) !important;}}
+        /* Inputs labels */
+        label, .stSelectbox label, .stRadio label, .stDateInput label {{font-size: calc(var(--base-font-size) * 1.05) !important;}}
+        /* Alerts */
+        .stAlert p {{font-size: calc(var(--base-font-size) * 1.0) !important;}}
+        /* Progress / status text */
+        .stProgress, .stProgress * {{font-size: calc(var(--base-font-size) * 0.9) !important;}}
+        </style>
+    """, unsafe_allow_html=True)
+
 # Helper function to calculate the current week number
 def get_week_number(current_date=datetime.now()):
     current_date = datetime(current_date.year, current_date.month, current_date.day)
@@ -108,7 +136,7 @@ def get_full_semester_calendar(group="Grupa B"):
             status_text.text(f"Pobieranie tygodnia {i + 1}/{total_weeks} ({get_date_from_week_number(week)})")
             try:
                 calendar_bytes, _ = get_calendar(week, group)
-                cal = Calendar.from_ical(calendar_bytes)
+                cal = Calendar.from_ical(calendar_bytes)  # type: ignore[arg-type]
                 events_in_week = list(cal.walk('vevent'))
                 if not events_in_week:
                     empty_weeks.append(week)
@@ -141,6 +169,11 @@ def get_full_semester_calendar(group="Grupa B"):
 
 # Streamlit app configuration
 st.set_page_config(page_title="Plan zajęć", page_icon="📅")
+
+# Add font size control in sidebar & inject CSS
+font_size = st.sidebar.slider("Rozmiar tekstu", 14, 26, 19, help="Zmień globalny rozmiar czcionki")
+inject_global_css(font_size)
+
 st.title("Fizjoterapia - Plan zajęć 📅")
 
 group = st.selectbox(
