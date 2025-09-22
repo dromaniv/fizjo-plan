@@ -96,7 +96,7 @@ def inject_global_css():
         }}
         .insight-card h4 {{ margin:0 0 .3rem 0; font-size:1.05rem; letter-spacing:.5px; }}
         .insight-card > div:not(.insight-meta):not(.mini-bars):not(.sparkline) {{ font-size: 1rem !important; }}
-        .insight-meta {{ display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.4rem; font-size:.7rem; opacity:.85; text-transform:uppercase; letter-spacing:.6px; }}
+        .insight-meta {{ display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.4rem; font-size:.6rem; opacity:.85; text-transform:uppercase; letter-spacing:.6px; }}
         .sparkline {{ height:32px; margin:.25rem 0 .15rem 0; }}
         .sparkline svg {{ width:100%; height:32px; overflow:visible; }}
         .mini-bars {{ display:flex; gap:3px; align-items:flex-end; height:32px; }}
