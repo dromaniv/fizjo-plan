@@ -45,7 +45,7 @@ def inject_global_css():
         /* Headings - reduced spacing and smaller title font */
         h1, .stMarkdown h1, .stApp > div > div > div > h1, 
         [data-testid="stHeader"] h1, .element-container h1 {{
-            font-size: 1.2rem !important;
+            font-size: 1.3rem !important;
             margin-bottom: 0.5rem !important;
             margin-top: 0.5rem !important;
         }}
