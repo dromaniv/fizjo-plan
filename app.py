@@ -10,10 +10,11 @@ with open("legend.yaml", "r") as file:
     data = yaml.safe_load(file)
     legend = data["abbreviations"]
 
-# --- New: global font size injection ---
+# --- Revised: global font size injection (static, no sidebar) ---
 
-def inject_global_css(base_size: int = 19):
-    """Inject global CSS to enlarge (and optionally scale) all text elements."""
+def inject_global_css():
+    """Inject global CSS with a fixed larger font size (no user control)."""
+    base_size = 18  # Increased base font size
     st.markdown(f"""
         <style>
         :root {{
@@ -23,18 +24,75 @@ def inject_global_css(base_size: int = 19):
         .stApp, .stApp * {{
             font-size: var(--base-font-size) !important;
         }}
-        /* Headings */
-        h1, .stMarkdown h1 {{font-size: calc(var(--base-font-size) * 2.0) !important;}}
-        h2, .stMarkdown h2 {{font-size: calc(var(--base-font-size) * 1.6) !important;}}
-        h3, .stMarkdown h3 {{font-size: calc(var(--base-font-size) * 1.3) !important;}}
+        /* Increased spacing between elements */
+        .element-container {{
+            margin-bottom: 0.5rem !important;
+            margin-top: 0.25rem !important;
+        }}
+        .stSelectbox, .stRadio, .stDateInput {{
+            margin-bottom: 0.5rem !important;
+            margin-top: 0.25rem !important;
+        }}
+        /* Increase spacing between radio button options */
+        .stRadio > div > label {{
+            margin-right: 2rem !important;
+        }}
+        .stButton {{
+            margin-top: 0.5rem !important;
+            margin-bottom: 0.25rem !important;
+        }}
+        .stAlert {{
+            margin-top: 0.5rem !important;
+            margin-bottom: 0.5rem !important;
+        }}
+        /* Add padding to main content */
+        .main .block-container {{
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+        }}
+        /* Headings - more specific targeting */
+        h1, .stMarkdown h1, .stApp > div > div > div > h1, 
+        [data-testid="stHeader"] h1, .element-container h1 {{
+            font-size: calc(var(--base-font-size) * 1.8) !important;
+            margin-bottom: 0.75rem !important;
+            margin-top: 0.5rem !important;
+        }}
+        h2, .stMarkdown h2 {{
+            font-size: calc(var(--base-font-size) * 1.7) !important;
+            margin-bottom: 0.5rem !important;
+            margin-top: 0.5rem !important;
+        }}
+        h3, .stMarkdown h3 {{
+            font-size: calc(var(--base-font-size) * 1.35) !important;
+            margin-bottom: 0.25rem !important;
+            margin-top: 0.25rem !important;
+        }}
         /* Buttons */
-        .stButton button, .stDownloadButton button {{font-size: calc(var(--base-font-size) * 1.05) !important;}}
+        .stButton button, .stDownloadButton button {{
+            font-size: calc(var(--base-font-size) * 1.1) !important;
+            padding: 1rem 1.5rem !important;
+        }}
+        /* Make download buttons full width like alerts */
+        .stDownloadButton button {{
+            width: 100% !important;
+            font-size: calc(var(--base-font-size) * 1.2) !important;
+            padding: 1.25rem 1.5rem !important;
+        }}
         /* Inputs labels */
-        label, .stSelectbox label, .stRadio label, .stDateInput label {{font-size: calc(var(--base-font-size) * 1.05) !important;}}
+        label, .stSelectbox label, .stRadio label, .stDateInput label {{
+            font-size: calc(var(--base-font-size) * 1.05) !important;
+            margin-bottom: 0.25rem !important;
+        }}
         /* Alerts */
-        .stAlert p {{font-size: calc(var(--base-font-size) * 1.0) !important;}}
-        /* Progress / status text */
-        .stProgress, .stProgress * {{font-size: calc(var(--base-font-size) * 0.9) !important;}}
+        .stAlert p {{
+            font-size: calc(var(--base-font-size) * 1.0) !important;
+        }}
+        /* Progress bar and status text - better targeting */
+        .stProgress, .stProgress *, [data-testid="stProgress"], 
+        .stProgress .stMarkdown, .element-container .stProgress *,
+        .st-emotion-cache-183lzff, [class*="st-emotion-cache"] {{
+            font-size: calc(var(--base-font-size) * 0.9) !important;
+        }}
         </style>
     """, unsafe_allow_html=True)
 
@@ -149,7 +207,7 @@ def get_full_semester_calendar(group="Grupa B"):
             progress_bar.progress((i + 1) / total_weeks)
         
         if not has_any_events:
-            status_text.error("Brak planu zajęć w całym semestrze.")
+            status_text.error("Brak planu zajęć w całym semestrze :(")
             return None, None
 
         if empty_weeks:
@@ -170,9 +228,8 @@ def get_full_semester_calendar(group="Grupa B"):
 # Streamlit app configuration
 st.set_page_config(page_title="Plan zajęć", page_icon="📅")
 
-# Add font size control in sidebar & inject CSS
-font_size = st.sidebar.slider("Rozmiar tekstu", 14, 26, 19, help="Zmień globalny rozmiar czcionki")
-inject_global_css(font_size)
+# Inject static enlarged typography (slider removed)
+inject_global_css()
 
 st.title("Fizjoterapia - Plan zajęć 📅")
 
@@ -229,7 +286,6 @@ elif option == 'Cały semestr (01.10 - 28.02)':
                     key="semester_download"
                 ):
                     st.balloons()
-            # If calendar_bytes is None, the error is already handled in get_full_semester_calendar
         except Exception as e:
             st.error(f"Wystąpił błąd: {e}")
     else:
