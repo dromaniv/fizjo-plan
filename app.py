@@ -446,7 +446,7 @@ group = st.selectbox(
 
 option = st.radio(
     "Wybierz zakres planu:",
-    ('Cały tydzień', 'Cały semestr (01.10 - 28.02)'),
+    ('Cały tydzień', 'Cały semestr'),
     horizontal=True,
 )
 
@@ -476,7 +476,7 @@ if option == 'Cały tydzień':
             #         for col, key_ in zip(cols, metric_order): col.metric(key_, week_stats.get(key_,0))
         else:
             st.error("Nie udało się pobrać planu zajęć")
-elif option == 'Cały semestr (01.10 - 28.02)':
+elif option == 'Cały semestr':
     if group:
         try:
             calendar_bytes, calendar_filename, sem_stats = get_full_semester_calendar(group)
