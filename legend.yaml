@@ -19,5 +19,12 @@ abbreviations:
   Msf(rprnmntnm: "Metody specjalne fizjoterapii (metody reedukacji posturalnej, reedukacji nerwowo-mięśniowej, neurorehabilitacji, terapii neurorozwojowej, manualnej)"
 
 optional_subjects:
-  GG1: true     # selected by default
-  JG1: false    # not selected by default
+  GG1: true
+  GG2: false
+  JG1: false
+  ZwtTzG1: true
+  ZwtTzG2: false
+  Tsonww: false
+  TkuwzigrG1: true
+  Gs: false
+  Pnozn: false
