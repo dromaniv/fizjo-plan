@@ -54,7 +54,7 @@ def inject_global_css():
         
         /* Headings - remove top spacing */
         h1 {{
-            font-size: 1.3rem !important;
+            font-size: 1.5rem !important;
             margin: 0 0 0.5rem 0 !important;
             padding-top: 0 !important;
         }}
@@ -583,7 +583,7 @@ if "selected_date" not in st.session_state:
 st.title("Fizjoterapia - Plan zajęć 📅")
 
 # Optional subjects selection (expander at top)
-with st.expander("Przedmioty obieralne", expanded=False):
+with st.expander("Przedmioty do wyboru", expanded=False):
     st.caption("Zaznacz przedmioty, które mają być uwzględnione:")
     selected_optional = []
     for abbr, default in optional_subjects_config.items():
