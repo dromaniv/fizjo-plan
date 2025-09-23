@@ -587,6 +587,18 @@ st.set_page_config(page_title="Plan zajęć", page_icon="📅")
 # Inject static enlarged typography (slider removed)
 inject_global_css()
 
+# --- Session state initialization for optional subjects and controls ---
+for abbr, default in optional_subjects_config.items():
+    state_key = f"opt_subj_{abbr}"
+    if state_key not in st.session_state:
+        st.session_state[state_key] = bool(default)
+if "group" not in st.session_state:
+    st.session_state.group = "Grupa B"
+if "plan_range_option" not in st.session_state:
+    st.session_state.plan_range_option = "Cały tydzień"
+if "selected_date" not in st.session_state:
+    st.session_state.selected_date = datetime.now().date()
+
 st.title("Fizjoterapia - Plan zajęć 📅")
 
 # Optional subjects selection (expander at top)
@@ -594,13 +606,9 @@ with st.expander("Przedmioty obieralne", expanded=False):
     st.caption("Zaznacz przedmioty, które mają być uwzględnione w planie.")
     selected_optional = []
     for abbr, default in optional_subjects_config.items():
-        # Use session state to preserve user choices across reruns
         state_key = f"opt_subj_{abbr}"
-        if state_key not in st.session_state:
-            st.session_state[state_key] = bool(default)
         checked = st.checkbox(
             f"{legend.get(abbr, abbr)}",
-            value=st.session_state[state_key],
             key=state_key,
         )
         if checked:
@@ -610,17 +618,17 @@ with st.expander("Przedmioty obieralne", expanded=False):
 group = st.selectbox(
     "Wybierz grupę ćwiczeniową:",
     ["Grupa A", "Grupa B", "Grupa C"],
-    index=1,
+    key="group",
 )
 
 option = st.radio(
     "Wybierz zakres planu:",
     ("Cały tydzień", "Cały semestr"),
-    horizontal=True,
+    key="plan_range_option",
 )
 
 if option == "Cały tydzień":
-    date = st.date_input("Wybierz tydzień:", value=datetime.now())
+    date = st.date_input("Wybierz tydzień:", key="selected_date")
 
     download_btn_placeholder = st.empty()
     if group:
