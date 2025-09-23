@@ -96,29 +96,23 @@ function ColorEvents() {
         byHash[hash] = { event: ev, genAt: genAt };
       }
 
-      // Read title once (case-important check for "Gr")
-      let title = "";
-      try {
-        title = ev.getTitle() || "";
-      } catch (e) {
-        // If title read fails, keep it empty and continue with desc-based rules
-        title = "";
-      }
-
       // Lightweight color decision (no extra allocations)
       let color = CalendarApp.EventColor.MAUVE;
-      // If title contains exact "Gr" (case-sensitive)
-      if (title.indexOf("Gr") !== -1) {
+      // Order matters only if overlaps; keep simple substring checks
+      if (desc.indexOf("wyk") !== -1) {
+        color = CalendarApp.EventColor.GRAY;
+      } else if (desc.indexOf("ćw ") !== -1) {
+        color = CalendarApp.EventColor.GREEN;
+      } else if (desc.indexOf("klin") !== -1) {
+        color = CalendarApp.EventColor.YELLOW;
+      } else if (desc.indexOf("gry") !== -1) {
         color = CalendarApp.EventColor.ORANGE;
-      } else {
-        // Order matters only if overlaps; keep simple substring checks
-        if (desc.indexOf("wyk") !== -1) {
-          color = CalendarApp.EventColor.GRAY;
-        } else if (desc.indexOf("ćw ") !== -1) {
-          color = CalendarApp.EventColor.GREEN;
-        } else if (desc.indexOf("klin") !== -1) {
-          color = CalendarApp.EventColor.YELLOW;
-        }
+      } else if (desc.indexOf("gim") !== -1) {
+        color = CalendarApp.EventColor.ORANGE;
+      } else if (desc.indexOf("pł") !== -1) {
+        color = CalendarApp.EventColor.ORANGE;
+      } else if (desc.indexOf("LA") !== -1) {
+        color = CalendarApp.EventColor.ORANGE;
       }
 
       // Minimize service calls: only set when different
