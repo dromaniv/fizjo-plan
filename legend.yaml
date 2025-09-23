@@ -18,7 +18,8 @@ abbreviations:
   ZwtTzG1: "Zabawa w terapii/ Terapia zabawy - Gr 1"
   ZwtTzG2: "Zabawa w terapii/ Terapia zabawy - Gr 2"
   Msf(rprnmntnm: "Metody specjalne fizjoterapii (metody reedukacji posturalnej, reedukacji nerwowo-mięśniowej, neurorehabilitacji, terapii neurorozwojowej, manualnej)"
-
+  Msf(rprnmntnm): "Metody specjalne fizjoterapii (metody reedukacji posturalnej, reedukacji nerwowo-mięśniowej, neurorehabilitacji, terapii neurorozwojowej, manualnej)"
+  Zapisy na praktyki zawodowe- mgr Anna Chrzanowska p. 118: "Zapisy na praktyki"
 optional_subjects:
   GG1: true
   GG2: false
