@@ -630,7 +630,7 @@ if option == "Cały tydzień":
             st.stop()
         if calendar_bytes:
             # Use full-width container for download button
-            col1, = st.columns([1])
+            (col1,) = st.columns([1])
             with col1:
                 if st.download_button(
                     label=":rainbow[Pobierz / Importuj]",
@@ -653,7 +653,7 @@ elif option == "Cały semestr":
             )
             if calendar_bytes:
                 # Use full-width container for download button
-                col1, = st.columns([1])
+                (col1,) = st.columns([1])
                 with col1:
                     if st.download_button(
                         label=":rainbow[Pobierz / Importuj]",
