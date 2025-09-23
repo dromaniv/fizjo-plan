@@ -261,6 +261,9 @@ def get_calendar(week_number, group="Grupa B", optional_selected=()):
                 abbreviation = summary.split("  ")[0]
             except Exception:
                 abbreviation = summary
+        elif summary.lower().startswith("zapisy"):
+            # Special case: don't split "Zapisy" summaries
+            abbreviation = summary
         else:
             # first token
             abbreviation = summary.split()[0]
