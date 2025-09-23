@@ -6,5 +6,8 @@ abbreviations:
   Dfwdur: "Diagnostyka funkcjonalna w dysfunkcjach układu ruchu"
   Fkwdurwnin: "Fizjoterapia kliniczna w dysfunkcjach układu ruchu w neurologii i neurochirurgii"
   Fkwdurwwr: "Fizjoterapia kliniczna w dysfunkcjach układu ruchu w wieku rozwojowym"
-  Msf(rprnmntnm: "Metody specjalne fizjoterapii (metody reedukacji posturalnej, reedukacji nerwowo-mięśniowej, neurorehabilitacji, terapii neurorozwojowej, manualnej)"
-  Msf(rprnmntnm): Metody specjalne fizjoterapii (metody reedukacji posturalnej, reedukacji nerwowo-mięśniowej, neurorehabilitacji, terapii neurorozwojowej, manualnej)"
+  Msf(rprnmntnm): "Metody specjalne fizjoterapii (metody reedukacji posturalnej, reedukacji nerwowo-mięśniowej, neurorehabilitacji, terapii neurorozwojowej, manualnej)"
+
+optional_subjects:
+  Dfwcw: true   # selected by default
+  Dfwwr: false  # not selected by default
