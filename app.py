@@ -68,10 +68,16 @@ def inject_global_css():
         }}
         .stDownloadButton {{
             margin-bottom: 1.25rem !important;
+            width: 100% !important;
         }}
         .stDownloadButton button {{
             width: 100% !important;
             padding: 1rem 1.25rem !important;
+        }}
+        
+        /* Simple fix for download button width */
+        .stDownloadButton > div {{
+            width: 100% !important;
         }}
         
         /* Pills */
@@ -232,7 +238,7 @@ def generate_event_hash(component):
 @st.cache_data(ttl=28800, show_spinner=False)
 def get_calendar(week_number, group="Grupa B", optional_selected=()):
     # Construct the URL
-    url = f"http://web0.awf.poznan.pl/plan/plan.php?type=NaN&id=95765&cvsfile=true&w={week_number}"
+    url = f"http://web0.awf.poznan.pl/plan/plan.php?type=0&id=104148&cvsfile=true&w={week_number}"
 
     # Download the calendar file
     response = requests.get(url)
@@ -623,14 +629,18 @@ if option == "Cały tydzień":
             st.error("Brak danych dla tego tygodnia :(")
             st.stop()
         if calendar_bytes:
-            if download_btn_placeholder.download_button(
-                label=":rainbow[Pobierz / Importuj]",
-                data=calendar_bytes,
-                file_name=calendar_filename,
-                mime="text/calendar",
-                key="week_download",
-            ):
-                st.balloons()
+            # Use full-width container for download button
+            col1, = st.columns([1])
+            with col1:
+                if st.download_button(
+                    label=":rainbow[Pobierz / Importuj]",
+                    data=calendar_bytes,
+                    file_name=calendar_filename,
+                    mime="text/calendar",
+                    key="week_download",
+                    use_container_width=True,
+                ):
+                    st.balloons()
             render_compact_week_stats(week_stats)
             render_week_insights(week_stats)
         else:
@@ -642,14 +652,18 @@ elif option == "Cały semestr":
                 group, optional_selected=selected_optional
             )
             if calendar_bytes:
-                if st.download_button(
-                    label=":rainbow[Pobierz / Importuj]",
-                    data=calendar_bytes,
-                    file_name=calendar_filename,
-                    mime="text/calendar",
-                    key="semester_download",
-                ):
-                    st.balloons()
+                # Use full-width container for download button
+                col1, = st.columns([1])
+                with col1:
+                    if st.download_button(
+                        label=":rainbow[Pobierz / Importuj]",
+                        data=calendar_bytes,
+                        file_name=calendar_filename,
+                        mime="text/calendar",
+                        key="semester_download",
+                        use_container_width=True,
+                    ):
+                        st.balloons()
                 render_compact_sem_stats(sem_stats)
                 render_sem_insights(sem_stats)
         except Exception as e:

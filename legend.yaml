@@ -1,13 +1,23 @@
 abbreviations:
-  Aafisozn: "Adaptowana aktywność fizyczna i sport osób z niepełnosprawnościami"
-  Dfwcw: "Diagnostyka funkcjonalna w chorobach wewnętrznych"
-  Dfwwr: "Diagnostyka funkcjonalna w wieku rozwojowym"
-  Fkwcwwp: "Fizjoterapia kliniczna w chorobach wewnętrznych w psychiatrii"
-  Dfwdur: "Diagnostyka funkcjonalna w dysfunkcjach układu ruchu"
-  Fkwdurwnin: "Fizjoterapia kliniczna w dysfunkcjach układu ruchu w neurologii i neurochirurgii"
-  Fkwdurwwr: "Fizjoterapia kliniczna w dysfunkcjach układu ruchu w wieku rozwojowym"
-  Msf(rprnmntnm): "Metody specjalne fizjoterapii (metody reedukacji posturalnej, reedukacji nerwowo-mięśniowej, neurorehabilitacji, terapii neurorozwojowej, manualnej)"
+  Df: "Dydaktyka fizjoterapii"
+  Fipz: "Fizjoprofilaktyka i promocja zdrowia"
+  Gs: "Gimnastyka senioralna"
+  Kk: "Komunikacja kliniczna"
+  Pfwcw: "Planowanie fizjoterapii w chorobach wewnętrznych"
+  Pfwdur: "Planowanie fizjoterapii w dysfunkcjach układu ruchu"
+  Pnozn: "Piłka nożna osób z niepełnosprawnościami"
+  GG1: "Goallball - Gr 1"
+  GG2: "Goallball - Gr 2"
+  JG1: "Jogging - Gr 1"
+  Tsonww: "Trening sportowy osób niepełnosprawnych w wodzie"
+  Mwf: "Masaż w fizjoterapii"
+  Pfwwr: "Planowanie fizjoterapii w wieku rozwojowym"
+  Sd: "Suplementacja diety"
+  TkuwzigrG1: "Trening koncentracji uwagi w zabawach i grach ruchowych - Gr 1"
+  ZwtTzG1: "Zabawa w terapii/ Terapia zabawy - Gr 1"
+  ZwtTzG2: "Zabawa w terapii/ Terapia zabawy - Gr 2"
+  Msf(rprnmntnm: "Metody specjalne fizjoterapii (metody reedukacji posturalnej, reedukacji nerwowo-mięśniowej, neurorehabilitacji, terapii neurorozwojowej, manualnej)"
 
 optional_subjects:
-  Dfwcw: true   # selected by default
-  Dfwwr: false  # not selected by default
+  GG1: true     # selected by default
+  JG1: false    # not selected by default
