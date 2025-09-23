@@ -19,179 +19,160 @@ with open("legend.yaml", "r") as file:
 
 
 def inject_global_css():
-    """Inject global CSS with essential styling only (no font size overrides)."""
+    """Inject simplified global CSS with essential styling only."""
     st.markdown(
         f"""
         <style>
-        /* Reduced spacing rules */
-        .element-container {{
-            margin-bottom: 0.25rem !important;
-            margin-top: 0.125rem !important;
+        /* Remove top spacing and fix layout */
+        .stApp > header {{
+            display: none !important;
         }}
-        .stSelectbox, .stRadio, .stDateInput {{
-            margin-bottom: 0.25rem !important;
-            margin-top: 0.125rem !important;
-        }}
-        /* Increase spacing between radio button options */
-        .stRadio > div > label {{
-            margin-right: 2rem !important;
-        }}
-        .stButton {{
-            margin-top: 0.25rem !important;
-            margin-bottom: 0.125rem !important;
-        }}
-        .stAlert {{
-            margin-top: 0.25rem !important;
-            margin-bottom: 0.25rem !important;
-        }}
-        /* Add padding to main content */
         .main .block-container {{
-            padding-top: 0.25rem !important;
-            padding-bottom: 0.25rem !important;
+            padding: 0 1rem 0.25rem 1rem !important;
+            margin-top: 0 !important;
         }}
-        /* Headings - reduced spacing and smaller title font */
-        h1, .stMarkdown h1, .stApp > div > div > div > h1, 
-        [data-testid="stHeader"] h1, .element-container h1 {{
-            font-size: 1.3rem !important;
-            margin-bottom: 0.5rem !important;
-            margin-top: 0.5rem !important;
+        .stApp {{
+            margin-top: 0 !important;
+            padding-top: 0 !important;
         }}
-        h2, .stMarkdown h2 {{
-            margin-bottom: 0.25rem !important;
-            margin-top: 0.25rem !important;
+        
+        /* General spacing */
+        .element-container, .stSelectbox, .stRadio, .stDateInput {{
+            margin: 0.125rem 0 !important;
         }}
-        h3, .stMarkdown h3 {{
+        
+        /* Radio buttons - horizontal layout with proper targeting */
+        .stRadio > div[role="radiogroup"] {{
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 2rem !important;
+            margin-bottom: 0 !important;
+        }}
+        .stRadio {{
             margin-bottom: 0.125rem !important;
-            margin-top: 0.125rem !important;
         }}
+        
+        /* Headings - remove top spacing */
+        h1 {{
+            font-size: 1.3rem !important;
+            margin: 0 0 0.5rem 0 !important;
+            padding-top: 0 !important;
+        }}
+        h2, h3 {{
+            margin: 0.125rem 0 !important;
+        }}
+        
         /* Buttons */
-        .stButton button, .stDownloadButton button {{
-            padding: 0.75rem 1.25rem !important;
+        .stButton {{
+            margin: 0.25rem 0 0.125rem 0 !important;
         }}
-        /* Make download buttons full width like alerts */
+        .stDownloadButton {{
+            margin-bottom: 1.25rem !important;
+        }}
         .stDownloadButton button {{
             width: 100% !important;
             padding: 1rem 1.25rem !important;
         }}
-        /* Padding below download button */
-        .stDownloadButton {{
-            margin-bottom: 1.25rem !important;
-        }}
-        /* Inputs labels */
-        label, .stSelectbox label, .stRadio label, .stDateInput label {{
-            margin-bottom: 0.125rem !important;
-        }}
         
-        /* LIGHT THEME */
-        /* Compact pill stats with reduced spacing */
+        /* Pills */
         .pill-stats {{
-            display:flex; flex-wrap:wrap; gap:.35rem; margin:.25rem 0 .5rem 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            margin: 0.25rem 0 0.5rem 0;
         }}
         .pill-stats .pill {{
-            background:#f8fafc; color:#1e293b; border:1px solid #e2e8f0; border-radius:999px;
-            padding:.3rem .75rem; font-size:.8rem; font-weight:600; letter-spacing:.25px; display:inline-flex; align-items:center;
-            box-shadow:0 1px 3px rgba(0,0,0,.1);
+            background: #f8fafc;
+            color: #1e293b;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            padding: 0.3rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 600;
         }}
-        .pill-stats .pill span {{ opacity:.7; font-weight:500; margin-right:.3rem; }}
-        .pill.tag-w {{ background:#e2e8f0; color:#475569; }}
-        .pill.tag-c {{ background:#ffe4e6; color:#be185d; }}
-        .pill.tag-k {{ background:#e0f2fe; color:#0369a1; }}
-        .pill.tag-i {{ background:#fde4cf; color:#c2410c; }}
+        .pill-stats .pill span {{
+            opacity: 0.7;
+            margin-right: 0.3rem;
+        }}
+        .pill.tag-w {{ background: #e2e8f0; color: #475569; }}
+        .pill.tag-c {{ background: #ffe4e6; color: #be185d; }}
+        .pill.tag-k {{ background: #e0f2fe; color: #0369a1; }}
+        .pill.tag-i {{ background: #fde4cf; color: #c2410c; }}
         
-        /* Light theme insight cards */
+        /* Insight cards */
         .insight-card {{
-            background:linear-gradient(145deg,#ffffff 0%,#f8fafc 90%); 
-            color:#1e293b; 
-            padding:.8rem 1rem; 
-            border:1px solid #e2e8f0; 
-            border-radius:14px; 
-            margin:.3rem 0 .8rem 0; 
-            position:relative; 
-            overflow:hidden;
-            box-shadow:0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -1px rgba(0,0,0,.06);
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 90%);
+            color: #1e293b;
+            padding: 0.8rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            margin: 0.3rem 0 0.8rem 0;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }}
-        .insight-card:before {{
-            content:""; position:absolute; inset:0; 
-            background:radial-gradient(circle at 85% -10%,rgba(99,102,241,.08),transparent 60%); 
-            pointer-events:none;
+        .insight-card h4 {{
+            margin: 0 0 0.3rem 0;
+            font-size: 1.05rem;
+            color: #0f172a;
         }}
-        .insight-card h4 {{ margin:0 0 .3rem 0; font-size:1.05rem; letter-spacing:.5px; color:#0f172a; }}
-        .insight-card > div:not(.insight-meta):not(.mini-bars):not(.sparkline) {{ font-size: 1rem !important; }}
-        .insight-meta {{ 
-            display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.4rem; 
-            font-size:.7rem; opacity:.7; text-transform:uppercase; letter-spacing:.6px; 
-            color:#64748b;
+        .insight-meta {{
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.4rem;
+            font-size: 0.7rem;
+            opacity: 0.7;
+            color: #64748b;
         }}
-        .sparkline {{ height:32px; margin:.25rem 0 .15rem 0; }}
-        .sparkline svg {{ width:100%; height:32px; overflow:visible; }}
-        .mini-bars {{ display:flex; gap:3px; align-items:flex-end; height:32px; }}
-        .mini-bars .bar {{ 
-            flex:1; 
-            background:linear-gradient(180deg,#6366f1,#4f46e5); 
-            border-radius:3px 3px 2px 2px; 
-            position:relative; 
+        .mini-bars {{
+            display: flex;
+            gap: 3px;
+            align-items: flex-end;
+            height: 32px;
         }}
-        .mini-bars .bar span {{ 
-            position:absolute; top:-13px; left:50%; transform:translateX(-50%); 
-            font-size:.55rem; font-weight:500; color:#64748b; 
+        .mini-bars .bar {{
+            flex: 1;
+            background: linear-gradient(180deg, #6366f1, #4f46e5);
+            border-radius: 3px 3px 2px 2px;
+            position: relative;
         }}
-        .mini-bars .bar.busy {{ background:linear-gradient(180deg,#ef4444,#dc2626); }}
-        .pct-badges {{ display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.35rem; }}
-        .pct-badges .pct {{ 
-            font-size:.65rem; padding:.2rem .5rem; border-radius:6px; 
-            background:#e2e8f0; color:#475569; letter-spacing:.4px; 
+        .mini-bars .bar span {{
+            position: absolute;
+            top: -13px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.55rem;
+            color: #64748b;
         }}
-        /* Progress bar and status text - better targeting */
-        .stProgress, .stProgress *, [data-testid="stProgress"], 
-        .stProgress .stMarkdown, .element-container .stProgress *,
-        .stProgress [class*="st-emotion-cache"],
-        .st-emotion-cache-183lzff {{
-            font-size: 0.6rem !important;
+        .mini-bars .bar.busy {{
+            background: linear-gradient(180deg, #ef4444, #dc2626);
         }}
-        .expander-stats > div {{ background:rgba(241,245,249,.5); }}
+        .sparkline {{
+            height: 32px;
+            margin: 0.25rem 0 0.15rem 0;
+        }}
+        .sparkline svg {{
+            width: 100%;
+            height: 32px;
+        }}
         
-        /* DARK THEME */
+        /* Dark theme */
         @media (prefers-color-scheme: dark) {{
-          /* Pills in dark mode */
-          .pill-stats .pill {{ 
-            background:#1e293b; color:#f1f5f9; border-color:#334155; 
-            box-shadow:0 1px 3px rgba(0,0,0,.3);
-          }}
-          .pill.tag-w {{ background:#334155; color:#cbd5e1; }}
-          .pill.tag-c {{ background:#4c1d1d; color:#fca5a5; }}
-          .pill.tag-k {{ background:#1e3a5f; color:#7dd3fc; }}
-          .pill.tag-i {{ background:#513626; color:#fdba74; }}
-          .pill-stats .pill span {{ color:#cbd5e1; opacity:.8; }}
-          
-          /* Dark theme insight cards */
-          .insight-card {{
-            background:linear-gradient(145deg,#1e293b 0%,#0f172a 90%); 
-            color:#f1f5f9; 
-            border-color:#334155;
-            box-shadow:0 4px 6px -1px rgba(0,0,0,.4), 0 2px 4px -1px rgba(0,0,0,.3);
-          }}
-          .insight-card:before {{
-            background:radial-gradient(circle at 85% -10%,rgba(99,102,241,.25),transparent 60%);
-          }}
-          .insight-card h4 {{ color:#f1f5f9; }}
-          .insight-meta {{ color:#94a3b8; opacity:.85; }}
-          .mini-bars .bar span {{ color:#94a3b8; }}
-          .pct-badges .pct {{ background:#334155; color:#e2e8f0; }}
-          .expander-stats > div {{ background:rgba(15,23,42,.55); }}
-        }}
-        
-        /* Additional Streamlit theme support */
-        [data-theme="light"] .insight-card,
-        .stApp[data-theme="light"] .insight-card {{
-            background:linear-gradient(145deg,#ffffff 0%,#f8fafc 90%); 
-            color:#1e293b; 
-            border-color:#e2e8f0;
-        }}
-        [data-theme="dark"] .insight-card,
-        .stApp[data-theme="dark"] .insight-card {{
-            background:linear-gradient(145deg,#1e293b 0%,#0f172a 90%); 
-            color:#f1f5f9; 
-            border-color:#334155;
+            .pill-stats .pill {{
+                background: #1e293b;
+                color: #f1f5f9;
+                border-color: #334155;
+            }}
+            .pill.tag-w {{ background: #334155; color: #cbd5e1; }}
+            .pill.tag-c {{ background: #4c1d1d; color: #fca5a5; }}
+            .pill.tag-k {{ background: #1e3a5f; color: #7dd3fc; }}
+            .pill.tag-i {{ background: #513626; color: #fdba74; }}
+            .insight-card {{
+                background: linear-gradient(145deg, #1e293b 0%, #0f172a 90%);
+                color: #f1f5f9;
+                border-color: #334155;
+            }}
+            .insight-card h4 {{ color: #f1f5f9; }}
+            .insight-meta {{ color: #94a3b8; }}
+            .mini-bars .bar span {{ color: #94a3b8; }}
         }}
         </style>
     """,
@@ -603,7 +584,7 @@ st.title("Fizjoterapia - Plan zajęć 📅")
 
 # Optional subjects selection (expander at top)
 with st.expander("Przedmioty obieralne", expanded=False):
-    st.caption("Zaznacz przedmioty, które mają być uwzględnione w planie.")
+    st.caption("Zaznacz przedmioty, które mają być uwzględnione:")
     selected_optional = []
     for abbr, default in optional_subjects_config.items():
         state_key = f"opt_subj_{abbr}"
