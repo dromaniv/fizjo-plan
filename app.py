@@ -49,12 +49,12 @@ def inject_global_css():
             margin-bottom: 0 !important;
         }}
         .stRadio {{
-            margin-bottom: 0.125rem !important;
+            margin-bottom: 0rem !important;
         }}
-        
+    
         /* Headings - remove top spacing */
         h1 {{
-            font-size: 1.5rem !important;
+            font-size: 1.4rem !important;
             margin: 0 0 0.5rem 0 !important;
             padding-top: 0 !important;
         }}
