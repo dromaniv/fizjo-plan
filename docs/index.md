@@ -1,9 +1,9 @@
 ---
 layout: default
-title: 📅 Fizjo-Plan – Public Schedules
+title: 📅 Fizjo-Plan
 ---
 
-# 📅 Fizjo-Plan – Public Schedules
+# 📅 Fizjo-Plan
 
 Welcome! This page automatically lists all available `.ics` schedule feeds.
 
