@@ -190,7 +190,7 @@ def main():
     cal.add("X-CALENDAR-UPDATED", f"Generated {now}")
 
     # Ensure the output directory exists and construct full path
-    schedules_dir = Path("schedules")
+    schedules_dir = Path("docs")
     schedules_dir.mkdir(parents=True, exist_ok=True)
     output_path = schedules_dir / OUTPUT_FILE
 
