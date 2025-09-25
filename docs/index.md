@@ -10,7 +10,7 @@ Welcome! This page automatically lists all available `.ics` schedule feeds in th
 ## Available Calendars
 
 {% for file in site.static_files %}
-{% if file.path contains '/docs/' and file.extname == '.ics' %}
+{% if file.extname == '.ics' %}
 
 - [{{ file.name }}]({{ file.name }})
   {% endif %}
