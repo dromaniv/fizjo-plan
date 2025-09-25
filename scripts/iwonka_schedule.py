@@ -19,11 +19,10 @@ with open("legend.yaml", "r") as file:
 GROUP = "Grupa B"
 
 # Optional subjects you want to include (exact abbreviations)
-OPTIONAL_SUBJECTS = (
-    "GG1", "GG2", "ZwtTzG1", "ZwtTzG2", "TkuwzigrG1"
-)
+OPTIONAL_SUBJECTS = ("GG1", "GG2", "ZwtTzG1", "ZwtTzG2", "TkuwzigrG1")
 
-OUTPUT_FILE = Path("schedules/iwonka.ics")
+# Output file - automatically saved to schedules/ folder
+OUTPUT_FILE = "iwonka.ics"
 
 
 # Helper function to calculate the current week number
@@ -118,7 +117,7 @@ def get_calendar(week_number, group="Grupa B", optional_selected=()):
             else "ul. Królowej Jadwigi 27/39, Poznań, Polska"
         )
 
-    return cal.to_ical(), f"calendar_{group[-1]}_{week_number}.ics"
+    return cal.to_ical()
 
 
 # Function to get and prepare the calendar for the full semester (standalone version)
@@ -137,11 +136,11 @@ def get_full_semester_calendar(group="Grupa B", optional_selected=()):
     total_weeks = end_week - start_week + 1
     empty_weeks = []
     has_any_events = False
-    
+
     for i, week in enumerate(range(start_week, end_week + 1)):
-        print(f"Pobieranie tygodnia {i+1}/{total_weeks} ({get_date_from_week_number(week)})")
+        print(f"Fetching week {i+1}/{total_weeks} ({get_date_from_week_number(week)})")
         try:
-            calendar_bytes, _ = get_calendar(
+            calendar_bytes = get_calendar(
                 week, group, optional_selected=optional_selected
             )
             cal = Calendar.from_ical(calendar_bytes)  # type: ignore[arg-type]
@@ -153,22 +152,22 @@ def get_full_semester_calendar(group="Grupa B", optional_selected=()):
                 for component in events:
                     full_cal.add_component(component)
         except Exception:
-            print(f"Błąd dla tygodnia {get_date_from_week_number(week)}")
+            print(f"Error for week {get_date_from_week_number(week)}")
             empty_weeks.append(week)
-    
+
     if not has_any_events:
-        print("❌ Brak planu zajęć dla semestru :(")
+        print("❌ No class schedule available for the semester :(")
         return None, None
-    
+
     if empty_weeks:
         empty_week_dates = [get_date_from_week_number(w) for w in empty_weeks]
-        print("⚠️ Brak danych dla następujących tygodni:")
+        print("⚠️ No data available for the following weeks:")
         for date in empty_week_dates:
             print(f"   - {date}")
     else:
-        print("✅ Gotowe!")
-    
-    return full_cal.to_ical(), f"calendar_semester_{group[-1]}.ics"
+        print("✅ Done!")
+
+    return full_cal.to_ical()
 
 
 def main():
@@ -179,10 +178,10 @@ def main():
         optional_selected=OPTIONAL_SUBJECTS,
     )
 
-    if not result[0]:
+    if not result:
         raise RuntimeError("❌ Failed to generate calendar (no data)")
 
-    calendar_bytes, calendar_filename = result
+    calendar_bytes = result
 
     # Parse the calendar so we can append a timestamp
     cal = Calendar.from_ical(calendar_bytes)
@@ -190,11 +189,16 @@ def main():
     now = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S %Z")
     cal.add("X-CALENDAR-UPDATED", f"Generated {now}")
 
+    # Ensure the output directory exists and construct full path
+    schedules_dir = Path("schedules")
+    schedules_dir.mkdir(parents=True, exist_ok=True)
+    output_path = schedules_dir / OUTPUT_FILE
+
     # Write final file
-    with open(OUTPUT_FILE, "wb") as f:
+    with open(output_path, "wb") as f:
         f.write(cal.to_ical())
 
-    print(f"✅ Wrote updated schedule to {OUTPUT_FILE}")
+    print(f"✅ Successfully wrote updated schedule to {output_path}")
 
 
 if __name__ == "__main__":
