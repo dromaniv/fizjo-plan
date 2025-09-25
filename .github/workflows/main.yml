@@ -29,7 +29,6 @@ jobs:
 
       - name: Run all schedule scripts
         run: |
-          mkdir -p schedules
           for script in scripts/*.py; do
             echo "➡️ Running $script ..."
             python "$script" || echo "⚠️ $script failed"
@@ -39,6 +38,6 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add schedules/*.ics
+          git add docs/*.ics
           git commit -m "Auto-update schedules [skip ci]" || echo "No changes"
           git push
