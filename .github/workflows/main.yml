@@ -30,12 +30,12 @@ jobs:
       - name: Run the schedule script
         run: |
           echo "➡️ Running main.py ..."
-          python main.py || "⚠️ main.py failed"
+          python main.py || echo "⚠️ main.py failed"
 
       - name: Commit & push changes
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add docs/*.ics
+          git add -f docs/*.ics
           git commit -m "Auto-update schedules [skip ci]" || echo "No changes"
           git push
