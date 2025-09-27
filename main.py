@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
-from __future__ import annotations
+#!/usr/bin/env python3
+# coding: utf-8
 
 from datetime import datetime, timedelta
 from pathlib import Path
 import re
 import sys
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import pytz
 import requests
@@ -14,7 +14,6 @@ from icalendar import Calendar
 
 
 # ---------- YAML LOADING ----------
-
 LEGEND_FILE = "legend.yaml"
 
 
@@ -23,7 +22,7 @@ def load_yaml(path: str = LEGEND_FILE):
         data = yaml.safe_load(f) or {}
 
     legend: Dict[str, str] = data.get("abbreviations", {}) or {}
-    optional_subjects_config: Dict[str, bool] = data.get("optional_subjects", {}) or {}
+    optional_subjects: List[str] = data.get("optional_subjects", []) or []
     calendars_raw = data.get("calendars", [])
 
     # Normalize calendars to a list of dicts with 'name'
@@ -40,7 +39,7 @@ def load_yaml(path: str = LEGEND_FILE):
     else:
         calendars = []
 
-    return legend, optional_subjects_config, calendars
+    return legend, optional_subjects, calendars
 
 
 # ---------- WEEK & DATE HELPERS ----------
@@ -83,7 +82,7 @@ STREET_RE = re.compile(r"ul\.\s?[\w\sĄĆĘŁŃÓŚŹŻąćęłńóśźż\-]+", 
 
 
 def resolve_optional_selection_for_calendar(
-    global_optional_defaults: Dict[str, bool],
+    global_optional_subjects: List[str],
     calendar_optional_cfg: Optional[Union[Sequence[str], Dict[str, bool]]] = None,
 ) -> Tuple[str, ...]:
     """
@@ -92,7 +91,7 @@ def resolve_optional_selection_for_calendar(
     Rules:
       - If calendar_optional_cfg is a LIST -> include exactly those abbreviations.
       - If it's a DICT -> include those where value is True (others excluded).
-      - If omitted/None -> include all abbreviations where global default is True.
+      - If omitted/None -> include all subjects from global list.
     """
     if isinstance(calendar_optional_cfg, dict):
         return tuple(sorted([abbr for abbr, on in calendar_optional_cfg.items() if on]))
@@ -100,8 +99,8 @@ def resolve_optional_selection_for_calendar(
     if isinstance(calendar_optional_cfg, (list, tuple)):
         return tuple(sorted(set(str(x) for x in calendar_optional_cfg)))
 
-    # Fallback to global defaults == True
-    return tuple(sorted([abbr for abbr, on in global_optional_defaults.items() if on]))
+    # Fallback to include all subjects from global list
+    return tuple(sorted(global_optional_subjects))
 
 
 def fetch_awf_calendar_week(week_number: int) -> bytes:
@@ -119,7 +118,7 @@ def process_calendar_bytes_for_group_and_optionals(
     calendar_bytes: bytes,
     legend: Dict[str, str],
     group: str,
-    optional_subjects_config: Dict[str, bool],
+    optional_subjects_list: List[str],
     optional_selected: Tuple[str, ...],
 ) -> bytes:
     """
@@ -152,9 +151,9 @@ def process_calendar_bytes_for_group_and_optionals(
         else:
             abbreviation = s_text.split()[0] if s_text.split() else s_text
 
-        # Optional subject filtering
+        # Optional subject filtering - check if it's in the list but not selected
         if (
-            abbreviation in optional_subjects_config
+            abbreviation in optional_subjects_list
             and abbreviation not in optional_selected
         ):
             try:
@@ -210,7 +209,7 @@ def get_full_semester_calendar_bytes(
     *,
     group: str,
     legend: Dict[str, str],
-    optional_subjects_config: Dict[str, bool],
+    optional_subjects_list: List[str],
     optional_selected: Tuple[str, ...],
     start_of_semester: datetime = datetime(2025, 9, 30),
     end_of_semester: datetime = datetime(2026, 2, 28),
@@ -243,7 +242,7 @@ def get_full_semester_calendar_bytes(
                 raw_bytes,
                 legend=legend,
                 group=group,
-                optional_subjects_config=optional_subjects_config,
+                optional_subjects_list=optional_subjects_list,
                 optional_selected=optional_selected,
             )
             week_cal = Calendar.from_ical(week_ics)
@@ -255,8 +254,13 @@ def get_full_semester_calendar_bytes(
                 for comp in events:
                     full_cal.add_component(comp)
         except Exception as e:
-            print(f"     ! Couldn't fetch week {get_date_from_week_number(week)}")
-            empty_weeks.append(week)
+            error_str = str(e)
+            if error_str.startswith("Content line"):
+                print(f"     ! Couldn't fetch week: empty schedule")
+                empty_weeks.append(week)
+            else:
+                print(f"     ! Couldn't fetch week: {e}")
+                empty_weeks.append(week)
 
     if not has_any_events:
         print("❌ No class schedule available for the semester.")
@@ -315,16 +319,16 @@ def main():
             optional_defaults, cfg.get("optional_subjects")
         )
 
-        print(f"\n📅 Generating calendar for '{name}' (group: {group})")
+        print(f"\n📅 Generating calendar for '{name}' ({group})")
         if optional_selected:
-            print(f"   Optional INCLUDED: {', '.join(optional_selected)}")
+            print(f"   Optional subjects: {', '.join(optional_selected)}")
         else:
-            print("   Optional INCLUDED: (none)")
+            print("   Optional subjects: (none)")
 
         cal_bytes = get_full_semester_calendar_bytes(
             group=group,
             legend=legend,
-            optional_subjects_config=optional_defaults,
+            optional_subjects_list=optional_defaults,
             optional_selected=optional_selected,
         )
 

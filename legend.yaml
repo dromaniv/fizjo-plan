@@ -21,21 +21,25 @@ abbreviations:
   Msf(rprnmntnm): "Metody specjalne fizjoterapii"
 
 optional_subjects:
-  GG1: true
-  GG2: false
-  JG1: false
-  ZwtTzG1: true
-  ZwtTzG2: false
-  Tsonww: false
-  TkuwzigrG1: true
-  Gs: false
-  Pnozn: false
+  - GG1
+  - GG2
+  - JG1
+  - ZwtTzG1
+  - ZwtTzG2
+  - Tsonww
+  - TkuwzigrG1
+  - Gs
+  - Pnozn
 
 calendars:
+  - name: "awf"
+    group: "Grupa A"
+    optional_subjects:
+
   - name: "iwonka"
     group: "Grupa B"
     optional_subjects: ["GG1", "GG2", "ZwtTzG1", "ZwtTzG2", "TkuwzigrG1"]
 
   - name: "ola"
-    group: "Grupa A"
-    optional_subjects: ["GG1", "GG2", "ZwtTzG1", "ZwtTzG2", "TkuwzigrG1"]
+    group: "Grupa C"
+    optional_subjects: ["JG1", "TkuwzigrG1", "ZwtTzG1", "ZwtTzG2"]
