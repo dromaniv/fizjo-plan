@@ -30,3 +30,12 @@ optional_subjects:
   TkuwzigrG1: true
   Gs: false
   Pnozn: false
+
+calendars:
+  - name: "iwonka"
+    group: "Grupa B"
+    optional_subjects: ["GG1", "GG2", "ZwtTzG1", "ZwtTzG2", "TkuwzigrG1"]
+
+  - name: "ola"
+    group: "Grupa A"
+    optional_subjects: ["GG1", "GG2", "ZwtTzG1", "ZwtTzG2", "TkuwzigrG1"]

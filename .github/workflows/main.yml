@@ -27,12 +27,10 @@ jobs:
         run: |
           pip install requests pyyaml icalendar pytz
 
-      - name: Run all schedule scripts
+      - name: Run the schedule script
         run: |
-          for script in scripts/*.py; do
-            echo "➡️ Running $script ..."
-            python "$script" || echo "⚠️ $script failed"
-          done
+          echo "➡️ Running main.py ..."
+          python main.py || "⚠️ main.py failed"
 
       - name: Commit & push changes
         run: |

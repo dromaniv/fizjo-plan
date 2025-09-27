@@ -4,8 +4,6 @@
  * - Upsert by VEVENT UID, prune removed
  * - Colors by Polish keywords
  * - Processes the whole semester, but month-by-month with write budget, sleeps, and quota backoff
- *
- * Create a time-driven trigger to run ColorEvents() daily at 06:00.
  */
 
 const ICS_URL = "https://dromaniv.github.io/fizjo-plan/iwonka.ics";
@@ -16,8 +14,6 @@ const SEM_START = new Date(2025, 8, 30, 0, 0, 0); // 2025-09-30 00:00:00  (month
 const SEM_END = new Date(2026, 1, 28, 23, 59, 59); // 2026-02-28 23:59:59
 
 // Throttling / safety knobs (tuned for Calendar operational limits & Apps Script runtime)
-// Docs: Calendar has operational rate limits; Apps Script executions typically ~6min.
-// We avoid bursts & bail early on quota spikes.  :contentReference[oaicite:1]{index=1}
 const GLOBAL_WRITE_LIMIT = 400; // max create/update/delete per run (soft ceiling)
 const SLEEP_EVERY_WRITES = 40; // pause every N writes
 const SLEEP_MS = 100; // 100ms pause to smooth bursts
@@ -40,6 +36,11 @@ function ColorEvents() {
     Logger.log("Fetch ICS failed: " + e);
     return;
   }
+
+  // Read VCALENDAR-level metadata and VEVENTs
+  const icsUpdated = readCalendarUpdated_(icsText);
+  if (icsUpdated) Logger.log("Feed X-CALENDAR-UPDATED: " + icsUpdated);
+
   const vevents = parseICS_(icsText); // [{uid,summary,description,location,start,end}]
 
   // Pre-index all feed events in semester range by UID (to support deletes later per month)
@@ -83,7 +84,8 @@ function ColorEvents() {
         writeBudgetLeft: GLOBAL_WRITE_LIMIT - totalWrites,
         sleepEvery: SLEEP_EVERY_WRITES,
         sleepMs: SLEEP_MS,
-      }
+      },
+      icsUpdated
     );
 
     totalCreated += res.created;
@@ -158,7 +160,8 @@ function syncWindow_(
   RANGE_START,
   RANGE_END,
   tz,
-  limits
+  limits,
+  icsUpdated
 ) {
   const EXIST_UID_RX = /ICS-UID:\s*(\S+)/;
 
@@ -254,7 +257,8 @@ function syncWindow_(
         const desiredDesc = buildDescWithMarkers_(
           src.description || "",
           uid,
-          nowStamp
+          nowStamp,
+          icsUpdated
         );
         const curDesc = safeGet_(existingEv, "getDescription", "");
         if (curDesc !== desiredDesc) {
@@ -278,7 +282,8 @@ function syncWindow_(
           description: buildDescWithMarkers_(
             src.description || "",
             uid,
-            nowStamp
+            nowStamp,
+            icsUpdated
           ),
           location: src.location || "",
         };
@@ -424,6 +429,18 @@ function fetchIcs_(url) {
   return res.getContentText("UTF-8");
 }
 
+/**
+ * Reads the VCALENDAR-level "X-CALENDAR-UPDATED" header (added by your generator).
+ * Returns empty string if absent.
+ */
+function readCalendarUpdated_(icsText) {
+  if (!icsText) return "";
+  // Unfold folded lines per RFC: CRLF + SP/HT
+  const unfolded = icsText.replace(/\r\n[ \t]/g, "");
+  const m = /^X-CALENDAR-UPDATED(?:;[^:\r\n]+)?:([^\r\n]*)/m.exec(unfolded);
+  return m ? decodeText_(m[1].trim()) : "";
+}
+
 function parseICS_(text) {
   if (!text) return [];
   // Unfold folded lines: RFC allows CRLF + SP/HT to continue
@@ -497,18 +514,27 @@ function decodeText_(s) {
     .replace(/\\\\/g, "\\");
 }
 
-function buildDescWithMarkers_(userText, uid, stamp) {
-  // Preserve your user-visible description; append our markers for stable matching + refresh
+/**
+ * Build event description with stable markers.
+ * Includes:
+ *  - user (ICS) description
+ *  - ICS Updated (from X-CALENDAR-UPDATED)
+ *  - Synced at (this run's timestamp)
+ *  - ICS-UID
+ */
+function buildDescWithMarkers_(userText, uid, stamp, icsUpdated) {
+  // Remove any previous metadata block
   const clean = (userText || "").replace(
-    /\n+--- (Event|Sync) Metadata ---[\s\S]*$/m,
+    /\n+--- Metadata ---[\s\S]*$/m,
     ""
   );
   const lines = [
     clean.trim(),
     "",
-    "--- Sync Metadata ---",
-    "ICS-UID: " + uid,
+    "--- Metadata ---",
+    "Plan generated: " + icsUpdated,
     "Synced at: " + stamp,
+    "ICS-UID: " + uid,
   ];
   return lines.join("\n").trim();
 }
