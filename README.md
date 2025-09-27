@@ -131,17 +131,3 @@ The included `Code.gs` provides advanced Google Calendar synchronization with:
 - Dependencies: `requests`, `pyyaml`, `icalendar`, `pytz`
 - GitHub repository with Pages enabled (for hosting)
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes to `legend.yaml` or code
-4. Submit a pull request
-
-## 📄 License
-
-This project is open source and available under the terms specified in the LICENSE file.
-
----
-
-*This project helps physiotherapy students at AWF Poznań stay organized with their class schedules. The automated system ensures calendars are always up-to-date with the latest schedule changes.*
