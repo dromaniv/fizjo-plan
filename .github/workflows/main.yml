@@ -1,0 +1,43 @@
+name: Update Schedules
+
+on:
+  schedule:
+    - cron: "0 3 * * *"   # every day at 03:00 UTC
+  workflow_dispatch:       # manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install requests pyyaml icalendar pytz
+
+      - name: Run all schedule scripts
+        run: |
+          for script in scripts/*.py; do
+            echo "➡️ Running $script ..."
+            python "$script" || echo "⚠️ $script failed"
+          done
+
+      - name: Commit & push changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add docs/*.ics
+          git commit -m "Auto-update schedules [skip ci]" || echo "No changes"
+          git push
