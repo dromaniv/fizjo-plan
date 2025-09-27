@@ -36,6 +36,6 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add docs/*.ics
+          git add -f docs/*.ics
           git commit -m "Auto-update schedules [skip ci]" || echo "No changes"
           git push
