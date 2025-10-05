@@ -108,7 +108,7 @@ def fetch_awf_calendar_week(week_number: int) -> bytes:
     resp = requests.get(
         url,
         timeout=30,
-        headers={"User-Agent": "AWF-Plan-Downloader/1.0 (+https://example.local)"},
+        headers={"User-Agent": "AWF-Plan-Downloader/1.0"},
     )
     resp.raise_for_status()
     return resp.content
@@ -148,6 +148,8 @@ def process_calendar_bytes_for_group_and_optionals(
             abbreviation = parts[0] if parts else s_text
         elif lower.startswith("zapisy"):
             abbreviation = "Zapisy na praktyki zawodowe"
+        elif lower.startswith("obowiązkowe"):
+            abbreviation = "Obowiązkowe zebranie praktyki"
         else:
             abbreviation = s_text.split()[0] if s_text.split() else s_text
 
