@@ -208,7 +208,7 @@ def process_calendar_bytes_for_group_and_optionals(
 
         # LOCATION: check if remote, extract street, or use default
         if abbreviation in remote_subjects_list:
-            component["location"] = "zdalne / remote"
+            component["location"] = "Zdalnie"
         else:
             street = STREET_RE.search(remainder)
             if street:
