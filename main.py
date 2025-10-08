@@ -150,11 +150,11 @@ def process_calendar_bytes_for_group_and_optionals(
         if tokens:
             first_token = tokens[0]
 
-            if first_token in legend or first_token in optional_subjects_list:
+            if first_token in legend or first_token[:-2] in legend:
                 abbreviation = first_token
                 remainder = s_text[len(first_token):].strip()
 
-        # Fallback: if no abbreviation found, use first 4 words as summary
+        # If no abbreviation found, use first 4 words as summary
         if abbreviation is None:
             words = s_text.split()
             if len(words) <= 4:
