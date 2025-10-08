@@ -23,7 +23,6 @@ def load_yaml(path: str = LEGEND_FILE):
 
     legend: Dict[str, str] = data.get("abbreviations", {}) or {}
     optional_subjects: List[str] = data.get("optional_subjects", []) or []
-    remote_subjects: List[str] = data.get("remote_subjects", []) or []
     calendars_raw = data.get("calendars", [])
 
     # Normalize calendars to a list of dicts with 'name'
@@ -40,7 +39,7 @@ def load_yaml(path: str = LEGEND_FILE):
     else:
         calendars = []
 
-    return legend, optional_subjects, remote_subjects, calendars
+    return legend, optional_subjects, calendars
 
 
 # ---------- WEEK & DATE HELPERS ----------
@@ -121,7 +120,6 @@ def process_calendar_bytes_for_group_and_optionals(
     group: str,
     optional_subjects_list: List[str],
     optional_selected: Tuple[str, ...],
-    remote_subjects_list: List[str],
 ) -> bytes:
     """
     Filter & transform the ICS:
@@ -206,8 +204,8 @@ def process_calendar_bytes_for_group_and_optionals(
         # DESCRIPTION = everything after the abbreviation token
         component["description"] = remainder
 
-        # LOCATION: check if remote, extract street, or use default
-        if abbreviation in remote_subjects_list:
+        # LOCATION: check if "zdalne" appears in summary or description
+        if "zdalne" in lower or "zdalne" in remainder.lower():
             component["location"] = "Zdalnie"
         else:
             street = STREET_RE.search(remainder)
@@ -225,7 +223,6 @@ def get_full_semester_calendar_bytes(
     legend: Dict[str, str],
     optional_subjects_list: List[str],
     optional_selected: Tuple[str, ...],
-    remote_subjects_list: List[str],
     start_of_semester: datetime = datetime(2025, 9, 30),
     end_of_semester: datetime = datetime(2026, 2, 28),
 ) -> Optional[bytes]:
@@ -259,7 +256,6 @@ def get_full_semester_calendar_bytes(
                 group=group,
                 optional_subjects_list=optional_subjects_list,
                 optional_selected=optional_selected,
-                remote_subjects_list=remote_subjects_list,
             )
             week_cal = Calendar.from_ical(week_ics)
             events = list(week_cal.walk("vevent"))
@@ -310,7 +306,7 @@ def make_filename_from_calendar_name(name: str) -> str:
 
 
 def main():
-    legend, optional_defaults, remote_subjects, calendars = load_yaml()
+    legend, optional_defaults, calendars = load_yaml()
 
     if not calendars:
         print(
@@ -346,7 +342,6 @@ def main():
             legend=legend,
             optional_subjects_list=optional_defaults,
             optional_selected=optional_selected,
-            remote_subjects_list=remote_subjects,
         )
 
         if not cal_bytes:
