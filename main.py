@@ -23,6 +23,7 @@ def load_yaml(path: str = LEGEND_FILE):
 
     legend: Dict[str, str] = data.get("abbreviations", {}) or {}
     optional_subjects: List[str] = data.get("optional_subjects", []) or []
+    remote_subjects: List[str] = data.get("remote_subjects", []) or []
     calendars_raw = data.get("calendars", [])
 
     # Normalize calendars to a list of dicts with 'name'
@@ -39,7 +40,7 @@ def load_yaml(path: str = LEGEND_FILE):
     else:
         calendars = []
 
-    return legend, optional_subjects, calendars
+    return legend, optional_subjects, remote_subjects, calendars
 
 
 # ---------- WEEK & DATE HELPERS ----------
@@ -120,13 +121,14 @@ def process_calendar_bytes_for_group_and_optionals(
     group: str,
     optional_subjects_list: List[str],
     optional_selected: Tuple[str, ...],
+    remote_subjects_list: List[str],
 ) -> bytes:
     """
     Filter & transform the ICS:
       - remove optional subjects not selected
       - map abbreviations to full names in SUMMARY
       - color-code by type
-      - normalize LOCATION (street extraction)
+      - normalize LOCATION (street extraction or remote)
       - trim postfix group markers like 'pA', 'pB', etc
     """
     cal = Calendar.from_ical(calendar_bytes)
@@ -141,17 +143,28 @@ def process_calendar_bytes_for_group_and_optionals(
         s_text = str(summary)
         lower = s_text.lower()
 
-        # Determine abbreviation token early
-        if "aliczeni" in lower or "gzamin" in lower:
-            # looks like "Zaliczenie  " or "Egzamin  " + details separated by double space
-            parts = s_text.split("  ")
-            abbreviation = parts[0] if parts else s_text
-        elif lower.startswith("zapisy"):
-            abbreviation = "Zapisy na praktyki zawodowe"
-        elif lower.startswith("obowiązkowe"):
-            abbreviation = "Obowiązkowe zebranie praktyki"
-        else:
-            abbreviation = s_text.split()[0] if s_text.split() else s_text
+        # Determine abbreviation token using legend lookup
+        abbreviation = None
+        remainder = s_text
+
+        # Try to match the first token against known abbreviations
+        tokens = s_text.split()
+        if tokens:
+            first_token = tokens[0]
+
+            if first_token in legend or first_token in optional_subjects_list:
+                abbreviation = first_token
+                remainder = s_text[len(first_token):].strip()
+
+        # Fallback: if no abbreviation found, use first 4 words as summary
+        if abbreviation is None:
+            words = s_text.split()
+            if len(words) <= 4:
+                abbreviation = s_text
+                remainder = ""
+            else:
+                abbreviation = " ".join(words[:4])
+                remainder = " ".join(words[4:])
 
         # Optional subject filtering - check if it's in the list but not selected
         if (
@@ -191,18 +204,17 @@ def process_calendar_bytes_for_group_and_optionals(
         component["summary"] = legend.get(abbreviation, abbreviation)
 
         # DESCRIPTION = everything after the abbreviation token
-        try:
-            component["description"] = s_text[len(abbreviation) :].strip()
-        except Exception:
-            component["description"] = s_text
+        component["description"] = remainder
 
-        # LOCATION: try to extract "ul. <street>"
-        desc = str(component.get("description", "")) or ""
-        street = STREET_RE.search(desc)
-        if street:
-            component["location"] = f"ul. {street.group()[3:].strip()}, Poznań, Polska"
+        # LOCATION: check if remote, extract street, or use default
+        if abbreviation in remote_subjects_list:
+            component["location"] = "zdalne / remote"
         else:
-            component["location"] = "ul. Królowej Jadwigi 27/39, Poznań, Polska"
+            street = STREET_RE.search(remainder)
+            if street:
+                component["location"] = f"ul. {street.group()[3:].strip()}, Poznań, Polska"
+            else:
+                component["location"] = "ul. Królowej Jadwigi 27/39, Poznań, Polska"
 
     return cal.to_ical()
 
@@ -213,6 +225,7 @@ def get_full_semester_calendar_bytes(
     legend: Dict[str, str],
     optional_subjects_list: List[str],
     optional_selected: Tuple[str, ...],
+    remote_subjects_list: List[str],
     start_of_semester: datetime = datetime(2025, 9, 30),
     end_of_semester: datetime = datetime(2026, 2, 28),
 ) -> Optional[bytes]:
@@ -246,6 +259,7 @@ def get_full_semester_calendar_bytes(
                 group=group,
                 optional_subjects_list=optional_subjects_list,
                 optional_selected=optional_selected,
+                remote_subjects_list=remote_subjects_list,
             )
             week_cal = Calendar.from_ical(week_ics)
             events = list(week_cal.walk("vevent"))
@@ -296,7 +310,7 @@ def make_filename_from_calendar_name(name: str) -> str:
 
 
 def main():
-    legend, optional_defaults, calendars = load_yaml()
+    legend, optional_defaults, remote_subjects, calendars = load_yaml()
 
     if not calendars:
         print(
@@ -332,6 +346,7 @@ def main():
             legend=legend,
             optional_subjects_list=optional_defaults,
             optional_selected=optional_selected,
+            remote_subjects_list=remote_subjects,
         )
 
         if not cal_bytes:
