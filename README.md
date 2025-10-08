@@ -43,28 +43,54 @@ Maps short codes to full subject names:
 abbreviations:
   Df: "Dydaktyka fizjoterapii"
   Fipz: "Fizjoprofilaktyka i promocja zdrowia"
+  Kk: "Komunikacja kliniczna"
   # ... more subjects
 ```
 
 ### Optional Subjects
-Global defaults for optional subjects:
+Define which subjects are optional (available for selection per calendar):
 ```yaml
 optional_subjects:
-  GG1: true   # Include by default
-  GG2: false  # Exclude by default
-  # ... more subjects
+  - GG1
+  - GG2
+  - JG1
+  - ZwtTzG1
+  - ZwtTzG2
+  - Tsonww
+  - TkuwzigrG1
+  - Gs
+  - Pnozn
 ```
+
+**How it works:**
+- Optional subjects listed here can be selectively included/excluded per calendar
+- If a calendar doesn't specify `optional_subjects`, all optional subjects are included by default
+- If a calendar specifies a list of optional subjects, only those will be included
 
 ### Calendar Definitions
 Individual calendar configurations:
 ```yaml
 calendars:
+  - name: "awf"
+    group: "Grupa A"
+    optional_subjects:  # Empty = include all optional subjects
+
   - name: "iwonka"
     group: "Grupa B"
-    optional_subjects: ["GG1", "GG2", "ZwtTzG1"]
+    optional_subjects: ["GG1", "GG2", "ZwtTzG1", "ZwtTzG2", "TkuwzigrG1"]
+
   - name: "ola"
-    group: "Grupa A"
-    optional_subjects: ["GG1", "TkuwzigrG1"]
+    group: "Grupa C"
+    optional_subjects: ["JG1", "TkuwzigrG1", "ZwtTzG1", "ZwtTzG2"]
+```
+
+### Remote Classes
+Classes are automatically detected as remote when the summary or description contains the word "zdalne" (remote in Polish). These classes will have their location set to "Zdalnie" instead of a physical address.
+
+Example:
+```
+SUMMARY: Kk wyk GBrę zajęcia zdalne
+→ Location: Zdalnie
 ```
 
 ## 🚀 Usage
@@ -130,4 +156,3 @@ The included `Code.gs` provides advanced Google Calendar synchronization with:
 - Python 3.11+
 - Dependencies: `requests`, `pyyaml`, `icalendar`, `pytz`
 - GitHub repository with Pages enabled (for hosting)
-
