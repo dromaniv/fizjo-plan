@@ -39,8 +39,8 @@ calendars:
 
   - name: "iwonka"
     group: "Grupa B"
-    optional_subjects: ["GG1", "GG2", "ZwtTzG1", "ZwtTzG2", "TkuwzigrG1"]
+    optional_subjects: ["GG1", "ZwtTzG1", "TkuwzigrG1"]
 
   - name: "ola"
     group: "Grupa C"
-    optional_subjects: ["JG1", "TkuwzigrG1", "ZwtTzG1", "ZwtTzG2"]
+    optional_subjects: ["JG1", "ZwtTzG2", "TkuwzigrG1"]
