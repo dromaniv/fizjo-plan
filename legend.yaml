@@ -33,8 +33,16 @@ optional_subjects:
   - Pnozn
 
 calendars:
-  - name: "awf"
+  - name: "grupaA"
     group: "Grupa A"
+    optional_subjects:
+
+  - name: "grupaB"
+    group: "Grupa B"
+    optional_subjects:
+
+  - name: "grupaC"
+    group: "Grupa C"
     optional_subjects:
 
   - name: "iwonka"

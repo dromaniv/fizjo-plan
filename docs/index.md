@@ -12,7 +12,7 @@ Subscribe to your personalized class calendar below. Updates automatically daily
 ## Available Calendars
 
 {% for file in site.static_files %}
-{% if file.extname == '.ics' %}
+{% if file.extname == '.ics' and file.name != 'iwonka.ics' and file.name != 'ola.ics' %}
 - [{{ file.name }}]({{ file.name }})
 {% endif %}
 {% endfor %}
@@ -28,4 +28,3 @@ Subscribe to your personalized class calendar below. Updates automatically daily
 ---
 
 ℹ️ These feeds update automatically whenever the underlying schedule changes.
-
