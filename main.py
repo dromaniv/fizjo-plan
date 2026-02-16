@@ -145,14 +145,26 @@ def process_calendar_bytes_for_group_and_optionals(
         abbreviation = None
         remainder = s_text
 
-        # Try to match the first token against known abbreviations
+        # Try to match progressively longer prefixes against known abbreviations
+        # This handles both single-word (e.g., "Df") and multi-word (e.g., "Boc Gr 1") abbreviations
         tokens = s_text.split()
         if tokens:
-            first_token = tokens[0]
+            # Try matching from longest possible prefix down to single word
+            # This ensures "Boc Gr 1" matches before "Boc"
+            for num_words in range(min(len(tokens), 5), 0, -1):
+                candidate = " ".join(tokens[:num_words])
 
-            if first_token in legend or first_token[:-2] in legend:
-                abbreviation = first_token
-                remainder = s_text[len(first_token):].strip()
+                # Check exact match or match without trailing 'pA', 'pB', 'pC' suffix
+                if candidate in legend:
+                    abbreviation = candidate
+                    remainder = s_text[len(candidate):].strip()
+                    break
+                elif candidate[:-2] in legend and len(candidate) >= 2:
+                    # Check if it ends with group marker like 'pA', 'pB', 'pC'
+                    if candidate[-2] == "p" and candidate[-1] in ("A", "B", "C"):
+                        abbreviation = candidate
+                        remainder = s_text[len(candidate):].strip()
+                        break
 
         # If no abbreviation found, use first 4 words as summary
         if abbreviation is None:
