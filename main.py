@@ -192,6 +192,8 @@ def process_calendar_bytes_for_group_and_optionals(
             component.add("color", "red")
         elif "klin" in lower:
             component.add("color", "blue")
+        elif "gry" in lower:
+            component.add("color", "green")
         else:
             component.add("color", "darkred")
 
