@@ -1,5 +1,5 @@
 abbreviations:
-  Boc Gr 1: "Boccia Gr 1"
+  Boc Gr 1: "Boccia"
   Eisozozim: "Ekonomia i system ochrony zdrowia oraz zarządzanie i marketing"
   Msf(rprnmntnm: "Metody specjalne fizjoterapii"
   Mbnis: "Metodologia badań naukowych i statystyka"
@@ -8,10 +8,10 @@ abbreviations:
   Pfwwr: "Planowanie fizjoterapii w wieku rozwojowym"
   Ph: "Para-hokej"
   Pp(wimcp: "Podstawy prawa"
-  Psozn Gr 1: "Piłka siatkowa osób z niepełnosprawnościami - Gr 1"
-  TwHiW Gr 1: "Terapia wodna Hallwick i Watsu - Gr 1"
-  Pswiwpm Gr 1: "Przemieszczanie się wózkiem inwalidzkim w przestrzeni miejskiej - Gr 1"
-  Pswiwpm Gr 4: "Przemieszczanie się wózkiem inwalidzkim w przestrzeni miejskiej - Gr 4"
+  Psozn Gr 1: "Piłka siatkowa osób z niepełnosprawnościami"
+  TwHiW Gr 1: "Terapia wodna Hallwick i Watsu"
+  Pswiwpm Gr 1: "Przemieszczanie się wózkiem inwalidzkim - Gr 1"
+  Pswiwpm Gr 4: "Przemieszczanie się wózkiem inwalidzkim - Gr 4"
 
 optional_subjects:
   - Boc Gr 1
