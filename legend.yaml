@@ -1,15 +1,17 @@
 abbreviations:
   Boc Gr 1: "Boccia Gr 1"
-  Pp(wimcp: "Podstawy prawa (prawa: własności intelektualnej, medycznego, cywilnego, pracy)"
-  Pfwwr: "Planowanie fizjoterapii w wieku rozwojowym"
   Eisozozim: "Ekonomia i system ochrony zdrowia oraz zarządzanie i marketing"
-  Ph: "Para-hokej"
-  TwHiW Gr 1: "Terapia wodna Hallwick i Watsu - Gr 1"
-  Pfwdur: "Planowanie fizjoterapii w dysfunkcjach układu ruchu"
+  Msf(rprnmntnm: "Metody specjalne fizjoterapii"
   Mbnis: "Metodologia badań naukowych i statystyka"
+  Pfwcw: "Planowanie fizjoterapii w chorobach wewnętrznych"
+  Pfwdur: "Planowanie fizjoterapii w dysfunkcjach układu ruchu"
+  Pfwwr: "Planowanie fizjoterapii w wieku rozwojowym"
+  Ph: "Para-hokej"
+  Pp(wimcp: "Podstawy prawa"
+  Psozn Gr 1: "Piłka siatkowa osób z niepełnosprawnościami - Gr 1"
+  TwHiW Gr 1: "Terapia wodna Hallwick i Watsu - Gr 1"
   Pswiwpm Gr 1: "Przemieszczanie się wózkiem inwalidzkim w przestrzeni miejskiej - Gr 1"
   Pswiwpm Gr 4: "Przemieszczanie się wózkiem inwalidzkim w przestrzeni miejskiej - Gr 4"
-  Psozn Gr 1: "Piłka siatkowa osób z niepełnosprawnościami - Gr 1"
 
 optional_subjects:
   - Boc Gr 1
@@ -38,8 +40,8 @@ calendars:
 
   - name: "ola"
     group: "Grupa C"
-    optional_subjects: []
+    optional_subjects: ["Boc Gr 1", "Ph", "Pswiwpm Gr 1", "Pswiwpm Gr 4"]
 
   - name: "gracjana"
     group: "Grupa C"
-    optional_subjects: []
+    optional_subjects: ["Ph", "Pswiwpm Gr 1", "Pswiwpm Gr 4", "TwHiW Gr 1"]
