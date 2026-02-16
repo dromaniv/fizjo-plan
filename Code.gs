@@ -7,11 +7,11 @@
  */
 
 const ICS_URL = "https://dromaniv.github.io/fizjo-plan/iwonka.ics";
-const TARGET_CALENDAR_NAME = "Plan zajęć."; // must be an owned calendar
+const TARGET_CALENDAR_NAME = "AWF"; // must be an owned calendar
 
 // Semester boundaries (inclusive)
-const SEM_START = new Date(2025, 8, 30, 0, 0, 0); // 2025-09-30 00:00:00  (month 8 = Sep)
-const SEM_END = new Date(2026, 1, 28, 23, 59, 59); // 2026-02-28 23:59:59
+const SEM_START = new Date(2026, 2, 11, 0, 0, 0); // 2026-03-11 00:00:00  (month 2 = Mar)
+const SEM_END = new Date(2026, 6, 10, 23, 59, 59); // 2026-07-10 23:59:59  (month 6 = Jul)
 
 // Throttling / safety knobs (tuned for Calendar operational limits & Apps Script runtime)
 const GLOBAL_WRITE_LIMIT = 400; // max create/update/delete per run (soft ceiling)
@@ -540,15 +540,21 @@ function buildDescWithMarkers_(userText, uid, stamp, icsUpdated) {
 }
 
 function chooseColor_(ev) {
+  const title = (ev.summary || "").trim();
   const blob = (
     (ev.description || "") +
     " " +
     (ev.summary || "")
   ).toLowerCase();
+
+  if (title === "Suplementacja diety") {
+    return CalendarApp.EventColor.PALE_GREEN;
+  }
+
   if (blob.indexOf("wyk") !== -1) return CalendarApp.EventColor.GRAY;
   if (blob.indexOf("ćw") !== -1) return CalendarApp.EventColor.GREEN;
   if (blob.indexOf("klin") !== -1) return CalendarApp.EventColor.YELLOW;
-  if (/\b(gry|gim|pł|la)\b/.test(blob)) return CalendarApp.EventColor.ORANGE;
+  if (/\b(gry|gim|pł|la|reh)\b/.test(blob)) return CalendarApp.EventColor.ORANGE;
   return CalendarApp.EventColor.MAUVE;
 }
 
