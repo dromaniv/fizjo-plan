@@ -12,6 +12,8 @@ abbreviations:
   TwHiW Gr 1: "Terapia wodna Hallwick i Watsu"
   Pswiwpm Gr 1: "Przemieszczanie się wózkiem inwalidzkim - Gr 1"
   Pswiwpm Gr 4: "Przemieszczanie się wózkiem inwalidzkim - Gr 4"
+  Festyn: "Festyn"
+  Zapisy na praktyki: "Zapisy na praktyki"
 
 optional_subjects:
   - Boc Gr 1
@@ -36,12 +38,12 @@ calendars:
 
   - name: "iwonka"
     group: "Grupa B"
-    optional_subjects: ["Boc Gr 1", "Psozn Gr 1", "Pswiwpm Gr 1", "Pswiwpm Gr 4"]
+    optional_subjects: ["Boc Gr 1", "Psozn Gr 1", "Pswiwpm Gr 1"]
 
   - name: "ola"
     group: "Grupa C"
-    optional_subjects: ["Boc Gr 1", "Ph", "Pswiwpm Gr 1", "Pswiwpm Gr 4"]
+    optional_subjects: ["Boc Gr 1", "Ph", "Pswiwpm Gr 4"]
 
   - name: "gracjana"
     group: "Grupa C"
-    optional_subjects: ["Ph", "Pswiwpm Gr 1", "Pswiwpm Gr 4", "TwHiW Gr 1"]
+    optional_subjects: ["Ph", "Pswiwpm Gr 4", "TwHiW Gr 1"]
