@@ -547,7 +547,10 @@ function chooseColor_(ev) {
     (ev.summary || "")
   ).toLowerCase();
 
-  if (title === "Suplementacja diety") {
+  if (
+    title === "Podstawy prawa" ||
+    title === "Ekonomia i system ochrony zdrowia oraz zarządzanie i marketing"
+  ) {
     return CalendarApp.EventColor.PALE_GREEN;
   }
 
