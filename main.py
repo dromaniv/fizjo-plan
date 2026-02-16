@@ -146,11 +146,9 @@ def process_calendar_bytes_for_group_and_optionals(
         remainder = s_text
 
         # Try to match progressively longer prefixes against known abbreviations
-        # This handles both single-word (e.g., "Df") and multi-word (e.g., "Boc Gr 1") abbreviations
         tokens = s_text.split()
         if tokens:
             # Try matching from longest possible prefix down to single word
-            # This ensures "Boc Gr 1" matches before "Boc"
             for num_words in range(min(len(tokens), 5), 0, -1):
                 candidate = " ".join(tokens[:num_words])
 
