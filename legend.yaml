@@ -1,45 +1,23 @@
 abbreviations:
   Boc Gr 1: "Boccia Gr 1"
-  Df: "Dydaktyka fizjoterapii"
-  Eisozozim: "Ekonomia i system ochrony zdrowia oraz zarządzanie i marketing"
-  Fipz: "Fizjoprofilaktyka i promocja zdrowia"
-  Gs: "Gimnastyka senioralna"
-  JG1: "Jogging - Gr 1"
-  Kk: "Komunikacja kliniczna"
-  Mbnis: "Metodologia badań naukowych i statystyka"
-  Msf: "Metody specjalne fizjoterapii (reedukacja posturalna, reedukacja nerwowo-mięśniowa, neurorehabilitacja, terapia neurorozwojowa, terapia manualna)"
-  Mwf: "Masaż w fizjoterapii"
-  Ob: "Odnowa biologiczna"
-  Pfwcw: "Planowanie fizjoterapii w chorobach wewnętrznych"
-  Pfwdur: "Planowanie fizjoterapii w dysfunkcjach układu ruchu"
+  Pp(wimcp: "Podstawy prawa (prawa: własności intelektualnej, medycznego, cywilnego, pracy)"
   Pfwwr: "Planowanie fizjoterapii w wieku rozwojowym"
+  Eisozozim: "Ekonomia i system ochrony zdrowia oraz zarządzanie i marketing"
   Ph: "Para-hokej"
-  Pnozn: "Piłka nożna osób z niepełnosprawnościami"
-  Pp: "Podstawy prawa (własność intelektualna, prawo medyczne, cywilne, pracy)"
-  Psozn Gr 1: "Piłka siatkowa osób z niepełnosprawnościami - Gr 1"
+  TwHiW Gr 1: "Terapia wodna Hallwick i Watsu - Gr 1"
+  Pfwdur: "Planowanie fizjoterapii w dysfunkcjach układu ruchu"
+  Mbnis: "Metodologia badań naukowych i statystyka"
   Pswiwpm Gr 1: "Przemieszczanie się wózkiem inwalidzkim w przestrzeni miejskiej - Gr 1"
   Pswiwpm Gr 4: "Przemieszczanie się wózkiem inwalidzkim w przestrzeni miejskiej - Gr 4"
-  Sd: "Suplementacja diety"
-  TkuwzigrG1: "Trening koncentracji uwagi w zabawach i grach ruchowych - Gr 1"
-  Tsonww: "Trening sportowy osób niepełnosprawnych w wodzie"
-  TwHiW Gr 1: "Terapia wodna Halliwick i Watsu - Gr 1"
-  ZwtTzG1: "Zabawa w terapii / Terapia zabawy - Gr 1"
-  ZwtTzG2: "Zabawa w terapii / Terapia zabawy - Gr 2"
-  Msf(rprnmntnm: "Metody specjalne fizjoterapii (metody reedukacji posturalnej, reedukacji nerwowo- mięśniowej, neurorehabilitacji, terapii neurorozwojowej, manualnej)"
-  Msf(rprnmntnm): "Metody specjalne fizjoterapii (metody reedukacji posturalnej, reedukacji nerwowo- mięśniowej, neurorehabilitacji, terapii neurorozwojowej, manualnej)"
-  Pp(wimcp: "Podstawy prawa (prawa: własności intelektualnej, medycznego, cywilnego, pracy)"
-  Pp(wimcp): "Podstawy prawa (prawa: własności intelektualnej, medycznego, cywilnego, pracy)"
+  Psozn Gr 1: "Piłka siatkowa osób z niepełnosprawnościami - Gr 1"
 
 optional_subjects:
-  - Auwbn
   - Boc Gr 1
   - Ph
   - Psozn Gr 1
-  - Pk
   - Pswiwpm Gr 1
   - Pswiwpm Gr 4
   - TwHiW Gr 1
-  - Tzoznww
 
 calendars:
   - name: "grupaA"

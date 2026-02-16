@@ -236,7 +236,7 @@ def get_full_semester_calendar_bytes(
     optional_subjects_list: List[str],
     optional_selected: Tuple[str, ...],
     start_of_semester: datetime = datetime(2026, 3, 11),
-    end_of_semester: datetime = datetime(2026, 7, 5),
+    end_of_semester: datetime = datetime(2026, 7, 10),
 ) -> Optional[bytes]:
     """
     Assemble all weeks into one ICS for the whole semester.
