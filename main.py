@@ -189,13 +189,13 @@ def process_calendar_bytes_for_group_and_optionals(
         if "wyk" in lower:
             component.add("color", "gray")
         elif "ćw" in lower:
-            component.add("color", "red")
-        elif "klin" in lower:
-            component.add("color", "blue")
-        elif "gry" in lower:
             component.add("color", "green")
+        elif "klin" in lower:
+            component.add("color", "yellow")
+        elif any(x in lower for x in ("gry", "gim", "pł", "la", "reh")):
+            component.add("color", "orange")
         else:
-            component.add("color", "darkred")
+            component.add("color", "purple")
 
         # Group trimming logic, e.g., "XxxpA", "XxxpB"
         if abbreviation and abbreviation[-1:] in ("A", "B", "C"):
