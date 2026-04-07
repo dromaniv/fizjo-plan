@@ -2,7 +2,8 @@ name: Update Schedules
 
 on:
   schedule:
-    - cron: "0 3 * * *"   # every day at 03:00 UTC
+    - cron: "0 6 * * *"
+      timezone: "Europe/Warsaw"
   workflow_dispatch:       # manual trigger
 
 permissions:
