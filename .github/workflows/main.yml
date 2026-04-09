@@ -2,7 +2,7 @@ name: Update Schedules
 
 on:
   schedule:
-    - cron: "0 4 * * *"
+    - cron: "0 3 * * *"
       timezone: "Europe/Warsaw"
   workflow_dispatch:       # manual trigger
 
