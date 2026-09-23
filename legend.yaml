@@ -1,49 +1,73 @@
 abbreviations:
-  Boc Gr 1: "Boccia"
-  Eisozozim: "Ekonomia i system ochrony zdrowia oraz zarządzanie i marketing"
-  Msf(rprnmntnm: "Metody specjalne fizjoterapii"
-  Mbnis: "Metodologia badań naukowych i statystyka"
+  Far: "Farmakologia w fizjoterapii"
+  Mrszspf: "Metody radzenia sobie ze stresem przez fizjoterapeutę"
   Pfwcw: "Planowanie fizjoterapii w chorobach wewnętrznych"
   Pfwdur: "Planowanie fizjoterapii w dysfunkcjach układu ruchu"
-  Pfwwr: "Planowanie fizjoterapii w wieku rozwojowym"
-  Ph: "Para-hokej"
-  Pp(wimcp: "Podstawy prawa"
-  Psozn Gr 1: "Piłka siatkowa osób z niepełnosprawnościami"
-  TwHiW Gr 1: "Terapia wodna Hallwick i Watsu"
-  Pswiwpm Gr 1: "Przemieszczanie się wózkiem inwalidzkim - Gr 1"
-  Pswiwpm Gr 4: "Przemieszczanie się wózkiem inwalidzkim - Gr 4"
-  Festyn: "Festyn"
+  Pnrwwdsiwmd Gr 1: "Przeciążenia narządu ruchu w wybranych dyscyplinach sportu i współczesne metody diagnostyki - Gr 1"
+  Pnrwwdsiwmd: "Przeciążenia narządu ruchu w wybranych dyscyplinach sportu i współczesne metody diagnostyki"
+  Sm: "Survival miejski"
+  Sptzdwwpiwwni: "Specyfika pracy terapeutycznej z dzieckiem w wieku przedszkolnym i wczesnoszkolnym w normie intelektualnej"
+  Ssozn: "Strzelectwo sportowe osób z niepełnosprawnościami"
+  T/KG1: "TRX / Kettlebells - Gr 1"
+  T/KG4: "TRX / Kettlebells - Gr 3"
+  Timt: "Teoria i metodyka treningu"
+  TimtG1: "Teoria i metodyka treningu - Gr 1"
+  TimtG2: "Teoria i metodyka treningu - Gr 2"
+  Umwzf Gr 1 A: "Umiejętności miękkie w zawodzie fizjoterapeuty - Gr 1 A"
+  Umwzf Gr 1 B: "Umiejętności miękkie w zawodzie fizjoterapeuty - Gr 1 B"
+  Umwzf Gr 1: "Umiejętności miękkie w zawodzie fizjoterapeuty - Gr 1"
+  Umwzf: "Umiejętności miękkie w zawodzie fizjoterapeuty"
+  Wm: "Wyroby medyczne"
   Zapisy na praktyki: "Zapisy na praktyki"
+  Zp: "Zdrowie publiczne"
 
 optional_subjects:
-  - Boc Gr 1
-  - Ph
-  - Psozn Gr 1
-  - Pswiwpm Gr 1
-  - Pswiwpm Gr 4
-  - TwHiW Gr 1
+  - Mrszspf
+  - Pnrwwdsiwmd
+  - Pnrwwdsiwmd Gr 1
+  - T/KG1
+  - T/KG4
+  - Sm
+  - Sptzdwwpiwwni
+  - Ssozn
+  - Timt
+  - TimtG1
+  - TimtG2
+  - Umwzf
+  - Umwzf Gr 1
+  - Umwzf Gr 1 A
+  - Umwzf Gr 1 B
 
 calendars:
   - name: "grupaA"
     group: "Grupa A"
-    optional_subjects:
+    optional_subjects: null
 
   - name: "grupaB"
     group: "Grupa B"
-    optional_subjects:
+    optional_subjects: null
 
   - name: "grupaC"
     group: "Grupa C"
-    optional_subjects:
+    optional_subjects: null
 
   - name: "iwonka"
     group: "Grupa B"
-    optional_subjects: ["Boc Gr 1", "Psozn Gr 1", "Pswiwpm Gr 1"]
+    optional_subjects:
+      - Sptzdwwpiwwni
+      - Ssozn
+      - Sm
+      - Timt
+      - TimtG1
+      - Umwzf
+      - Umwzf Gr 1
+      - Umwzf Gr 1 A
+      - Umwzf Gr 1 B
 
   - name: "ola"
     group: "Grupa C"
-    optional_subjects: ["Boc Gr 1", "Ph", "Pswiwpm Gr 4"]
+    optional_subjects: null # Selection pending
 
   - name: "gracjana"
     group: "Grupa C"
-    optional_subjects: ["Ph", "Pswiwpm Gr 4", "TwHiW Gr 1"]
+    optional_subjects: null # Selection pending
