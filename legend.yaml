@@ -66,8 +66,15 @@ calendars:
 
   - name: "ola"
     group: "Grupa C"
-    optional_subjects: null # Selection pending
+    optional_subjects:
+      - Timt
+      - TimtG1
+      - TimtG2
+      - Sptzdwwpiwwni
+      - Ssozn
+      - T/KG1
+      - T/KG4
 
   - name: "gracjana"
     group: "Grupa C"
-    optional_subjects: null # Selection pending
+    optional_subjects: null
