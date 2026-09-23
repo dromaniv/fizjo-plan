@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import re
 import sys
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import pytz
 import requests
@@ -13,105 +13,106 @@ import yaml
 from icalendar import Calendar
 
 
-# ---------- YAML LOADING ----------
+# ---------- CONFIGURATION ----------
 LEGEND_FILE = "legend.yaml"
+BASE_DATE = datetime(2025, 2, 17)  # Monday, AWF week 657
+BASE_WEEKNUM = 657
+AWF_PLAN_URL = (
+    "http://web0.awf.poznan.pl/plan/plan.php?type=0&id=112976&cvsfile=true&w={week}"
+)
+# Broad autumn/winter fetch range; adjust to confirmed semester boundaries.
+START_OF_SEMESTER = datetime(2026, 9, 1)
+END_OF_SEMESTER = datetime(2027, 2, 28)
+TIMEZONE = "Europe/Warsaw"
+HTTP_TIMEOUT = 30
+DEFAULT_LOCATION = "ul. Królowej Jadwigi 27/39, Poznań, Polska"
+STREET_RE = re.compile(r"ul\.\s?[^,;\n\r]+", re.UNICODE)
+GROUP_SUFFIX_RE = re.compile(r"p([ABC])$")
+OptionalConfig = Optional[Union[Sequence[str], Dict[str, bool]]]
 
 
-def load_yaml(path: str = LEGEND_FILE):
+# ---------- YAML LOADING ----------
+def load_yaml(
+    path: str = LEGEND_FILE,
+) -> Tuple[Dict[str, str], List[str], List[Dict[str, Any]]]:
+    """Load abbreviations, global optionals, and list/dict calendar configs."""
     with open(path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
 
     legend: Dict[str, str] = data.get("abbreviations", {}) or {}
     optional_subjects: List[str] = data.get("optional_subjects", []) or []
     calendars_raw = data.get("calendars", [])
-
-    # Normalize calendars to a list of dicts with 'name'
-    calendars: List[Dict] = []
+    calendars: List[Dict[str, Any]] = []
     if isinstance(calendars_raw, dict):
-        # { "iwonka": {group: "...", optional_subjects: [...]}, ... }
         for name, cfg in calendars_raw.items():
-            if not isinstance(cfg, dict):
-                continue
-            calendars.append({"name": name, **cfg})
+            if isinstance(cfg, dict):
+                calendars.append({"name": name, **cfg})
     elif isinstance(calendars_raw, list):
-        # [ {name: "...", group: "...", optional_subjects: [...]}, ... ]
-        calendars = [c for c in calendars_raw if isinstance(c, dict) and "name" in c]
-    else:
-        calendars = []
-
+        calendars = [
+            c for c in calendars_raw if isinstance(c, dict) and "name" in c
+        ]
     return legend, optional_subjects, calendars
 
 
 # ---------- WEEK & DATE HELPERS ----------
-
-BASE_DATE = datetime(2025, 2, 17)  # Monday
-BASE_WEEKNUM = 657  # week number on BASE_DATE
-
-
 def get_week_number(current_date: Optional[datetime] = None) -> int:
-    """
-    Compute AWF 'w=' parameter week number for a given date based on a fixed base.
-    """
+    """Compute the AWF week number from its fixed Monday reference date."""
     if current_date is None:
-        now = datetime.now()
-        current_date = datetime(now.year, now.month, now.day)
-    else:
-        current_date = datetime(current_date.year, current_date.month, current_date.day)
-
-    week_diff = (current_date - BASE_DATE).days // 7
-    return BASE_WEEKNUM + week_diff
+        current_date = datetime.now(pytz.timezone(TIMEZONE))
+    day = datetime(current_date.year, current_date.month, current_date.day)
+    return BASE_WEEKNUM + (day - BASE_DATE).days // 7
 
 
 def get_date_from_week_number(week_number: int) -> str:
-    """
-    Human-readable range for a given AWF week number.
-    """
-    week_diff = week_number - BASE_WEEKNUM
-    start_of_week = BASE_DATE + timedelta(days=week_diff * 7)
-    end_of_week = start_of_week + timedelta(days=6)
-    return f"{start_of_week.strftime('%d.%m')} - {end_of_week.strftime('%d.%m.%Y')}"
+    """Return the Monday–Sunday date range for an AWF week."""
+    start = BASE_DATE + timedelta(weeks=week_number - BASE_WEEKNUM)
+    end = start + timedelta(days=6)
+    return f"{start:%d.%m} - {end:%d.%m.%Y}"
 
 
 # ---------- CALENDAR FETCH & PROCESS ----------
-
-AWF_PLAN_URL = (
-    "http://web0.awf.poznan.pl/plan/plan.php?type=0&id=104148&cvsfile=true&w={week}"
-)
-
-STREET_RE = re.compile(r"ul\.\s?[\w\sĄĆĘŁŃÓŚŹŻąćęłńóśźż\-]+", re.UNICODE)
-
-
 def resolve_optional_selection_for_calendar(
     global_optional_subjects: List[str],
-    calendar_optional_cfg: Optional[Union[Sequence[str], Dict[str, bool]]] = None,
+    calendar_optional_cfg: OptionalConfig = None,
 ) -> Tuple[str, ...]:
-    """
-    Compute which optional subjects (by abbreviation) should be INCLUDED for this calendar.
-
-    Rules:
-      - If calendar_optional_cfg is a LIST -> include exactly those abbreviations.
-      - If it's a DICT -> include those where value is True (others excluded).
-      - If omitted/None -> include all subjects from global list.
-    """
+    """Resolve selection: empty list excludes all; null/omitted includes all."""
     if isinstance(calendar_optional_cfg, dict):
-        return tuple(sorted([abbr for abbr, on in calendar_optional_cfg.items() if on]))
-
+        return tuple(sorted(abbr for abbr, on in calendar_optional_cfg.items() if on))
     if isinstance(calendar_optional_cfg, (list, tuple)):
         return tuple(sorted(set(str(x) for x in calendar_optional_cfg)))
-
-    # Fallback to include all subjects from global list
-    return tuple(sorted(global_optional_subjects))
+    return tuple(sorted(set(global_optional_subjects)))
 
 
 def fetch_awf_calendar_week(week_number: int) -> bytes:
-    url = AWF_PLAN_URL.format(week=week_number)
-    resp = requests.get(
-        url,
-        timeout=30,
+    """Download one AWF calendar week with an HTTP timeout."""
+    response = requests.get(
+        AWF_PLAN_URL.format(week=week_number),
+        timeout=HTTP_TIMEOUT,
         headers={"User-Agent": "AWF-Plan-Downloader/1.0"},
     )
-    resp.raise_for_status()
-    return resp.content
+    response.raise_for_status()
+    return response.content
+
+
+def _split_summary(
+    summary: str, known_abbreviations: Sequence[str],
+) -> Tuple[str, str]:
+    """Match the longest known prefix, allowing attached pA/pB/pC markers.
+
+    Token offsets preserve the original description even with repeated spaces.
+    Unknown subjects retain the previous first-four-words fallback.
+    """
+    tokens = list(re.finditer(r"\S+", summary))
+    known = set(known_abbreviations)
+    for count in range(len(tokens), 0, -1):
+        candidate = " ".join(token.group() for token in tokens[:count])
+        base = GROUP_SUFFIX_RE.sub("", candidate)
+        if candidate in known or base in known:
+            return candidate, summary[tokens[count - 1].end():].strip()
+    if len(tokens) <= 4:
+        return summary.strip(), ""
+    end = tokens[3].end()
+    return " ".join(token.group() for token in tokens[:4]), summary[end:].strip()
 
 
 def process_calendar_bytes_for_group_and_optionals(
@@ -121,111 +122,57 @@ def process_calendar_bytes_for_group_and_optionals(
     optional_subjects_list: List[str],
     optional_selected: Tuple[str, ...],
 ) -> bytes:
-    """
-    Filter & transform the ICS:
-      - remove optional subjects not selected
-      - map abbreviations to full names in SUMMARY
-      - color-code by type
-      - normalize LOCATION (street extraction or remote)
-      - trim postfix group markers like 'pA', 'pB', etc
+    """Filter group/optionals, expand titles, and set color/location/description.
+
+    Attached pA/pB/pC markers are removed BEFORE optional filtering.
+    Named variants such as 'Umwzf Gr 1 A' remain exact-match selections.
     """
     cal = Calendar.from_ical(calendar_bytes)
+    optional_set = set(optional_subjects_list)
+    selected_set = set(optional_selected)
+    known = tuple(set(legend) | optional_set | selected_set)
 
-    # Make a copy of subcomponents to iterate safely while removing
-    events = list(cal.walk("vevent"))
-    for component in events:
+    for component in list(cal.walk("vevent")):
         summary = component.get("summary")
         if not summary:
             continue
-
         s_text = str(summary)
         lower = s_text.lower()
+        abbreviation, remainder = _split_summary(s_text, known)
 
-        # Determine abbreviation token using legend lookup
-        abbreviation = None
-        remainder = s_text
-
-        # Try to match progressively longer prefixes against known abbreviations
-        tokens = s_text.split()
-        if tokens:
-            # Try matching from longest possible prefix down to single word
-            for num_words in range(min(len(tokens), 5), 0, -1):
-                candidate = " ".join(tokens[:num_words])
-
-                # Check exact match or match without trailing 'pA', 'pB', 'pC' suffix
-                if candidate in legend:
-                    abbreviation = candidate
-                    remainder = s_text[len(candidate):].strip()
-                    break
-                elif candidate[:-2] in legend and len(candidate) >= 2:
-                    # Check if it ends with group marker like 'pA', 'pB', 'pC'
-                    if candidate[-2] == "p" and candidate[-1] in ("A", "B", "C"):
-                        abbreviation = candidate
-                        remainder = s_text[len(candidate):].strip()
-                        break
-
-        # If no abbreviation found, use first 4 words as summary
-        if abbreviation is None:
-            words = s_text.split()
-            if len(words) <= 4:
-                abbreviation = s_text
-                remainder = ""
-            else:
-                abbreviation = " ".join(words[:4])
-                remainder = " ".join(words[4:])
-
-        # Optional subject filtering - check if it's in the list but not selected
-        if (
-            abbreviation in optional_subjects_list
-            and abbreviation not in optional_selected
-        ):
-            try:
+        suffix = GROUP_SUFFIX_RE.search(abbreviation)
+        if suffix:
+            if suffix.group(1) != group[-1:]:
                 cal.subcomponents.remove(component)
-            except Exception:
-                pass
+                continue
+            abbreviation = abbreviation[:-2]
+
+        if abbreviation in optional_set and abbreviation not in selected_set:
+            cal.subcomponents.remove(component)
             continue
 
-        # Quick color hints (non-standard property, many clients still honor it)
         if "wyk" in lower:
-            component.add("color", "gray")
+            color = "gray"
         elif "ćw" in lower:
-            component.add("color", "green")
+            color = "green"
         elif "klin" in lower:
-            component.add("color", "yellow")
+            color = "yellow"
         elif any(x in lower for x in ("gry", "gim", "pł", "la", "reh")):
-            component.add("color", "orange")
+            color = "orange"
         else:
-            component.add("color", "purple")
-
-        # Group trimming logic, e.g., "XxxpA", "XxxpB"
-        if abbreviation and abbreviation[-1:] in ("A", "B", "C"):
-            if len(abbreviation) >= 2 and abbreviation[-2] == "p":
-                # keep if matches group suffix, otherwise drop
-                if abbreviation[-1] != group[-1:]:
-                    try:
-                        cal.subcomponents.remove(component)
-                    except Exception:
-                        pass
-                    continue
-                # strip trailing 'pA' / 'pB' / 'pC'
-                abbreviation = abbreviation[:-2]
-
-        # Replace SUMMARY with full subject name if known
+            color = "purple"
+        component["color"] = color
         component["summary"] = legend.get(abbreviation, abbreviation)
-
-        # DESCRIPTION = everything after the abbreviation token
         component["description"] = remainder
 
-        # LOCATION: check if "zdalne" appears in summary or description
-        if "zdalne" in lower or "zdalne" in remainder.lower():
+        if "zdalne" in lower:
             component["location"] = "Zdalnie"
         else:
             street = STREET_RE.search(remainder)
-            if street:
-                component["location"] = f"ul. {street.group()[3:].strip()}, Poznań, Polska"
-            else:
-                component["location"] = "ul. Królowej Jadwigi 27/39, Poznań, Polska"
-
+            component["location"] = (
+                f"ul. {street.group()[3:].strip()}, Poznań, Polska"
+                if street else DEFAULT_LOCATION
+            )
     return cal.to_ical()
 
 
@@ -235,145 +182,107 @@ def get_full_semester_calendar_bytes(
     legend: Dict[str, str],
     optional_subjects_list: List[str],
     optional_selected: Tuple[str, ...],
-    start_of_semester: datetime = datetime(2026, 3, 11),
-    end_of_semester: datetime = datetime(2026, 7, 10),
+    start_of_semester: datetime = START_OF_SEMESTER,
+    end_of_semester: datetime = END_OF_SEMESTER,
 ) -> Optional[bytes]:
+    """Merge complete weeks covering the range, continuing after failed weeks.
+
+    Returns None if no events remain. Boundary weeks are included in full.
     """
-    Assemble all weeks into one ICS for the whole semester.
-    Returns bytes or None if no events were found at all.
-    """
+    if end_of_semester < start_of_semester:
+        raise ValueError("Semester end must not precede semester start.")
     start_week = get_week_number(start_of_semester)
     end_week = get_week_number(end_of_semester)
-
     full_cal = Calendar()
     full_cal.add("prodid", "-//ATS4//Plan zajęć.//PL")
     full_cal.add("version", "2.0")
     full_cal.add("calscale", "GREGORIAN")
     full_cal.add("method", "PUBLISH")
-    full_cal.add("X-WR-TIMEZONE", "Europe/Warsaw")
-
+    full_cal.add("X-WR-TIMEZONE", TIMEZONE)
     total_weeks = end_week - start_week + 1
     empty_weeks: List[int] = []
-    has_any_events = False
+    failed_weeks: List[int] = []
 
     for i, week in enumerate(range(start_week, end_week + 1), start=1):
-        print(
-            f"   • Fetching week {i}/{total_weeks} ({get_date_from_week_number(week)})"
-        )
+        print(f"  Fetching week {i}/{total_weeks} ({get_date_from_week_number(week)})")
         try:
             raw_bytes = fetch_awf_calendar_week(week)
-            week_ics = process_calendar_bytes_for_group_and_optionals(
+            processed = process_calendar_bytes_for_group_and_optionals(
                 raw_bytes,
                 legend=legend,
                 group=group,
                 optional_subjects_list=optional_subjects_list,
                 optional_selected=optional_selected,
             )
-            week_cal = Calendar.from_ical(week_ics)
+            week_cal = Calendar.from_ical(processed)
             events = list(week_cal.walk("vevent"))
             if not events:
                 empty_weeks.append(week)
-            else:
-                has_any_events = True
-                for comp in events:
-                    full_cal.add_component(comp)
-        except Exception as e:
-            error_str = str(e)
-            if error_str.startswith("Content line"):
-                print(f"     ! Couldn't fetch week: empty schedule")
-                empty_weeks.append(week)
-            else:
-                print(f"     ! Couldn't fetch week: {e}")
-                empty_weeks.append(week)
+            for component in events:
+                full_cal.add_component(component)
+        except Exception as exc:
+            print(f"    Could not process week {week}: {exc}")
+            failed_weeks.append(week)
 
-    if not has_any_events:
-        print("❌ No class schedule available for the semester.")
+    for label, weeks in (("Empty after filtering", empty_weeks), ("Failed", failed_weeks)):
+        if weeks:
+            print(f"{label} weeks:")
+            for week in weeks:
+                print(f"  - {get_date_from_week_number(week)}")
+    if not full_cal.subcomponents:
+        print("No class schedule available for this calendar in the selected range.")
         return None
-
-    if empty_weeks:
-        print("⚠️  No data available for the following weeks:")
-        for w in empty_weeks:
-            print(f"   - {get_date_from_week_number(w)}")
-    else:
-        print("✅ All weeks fetched successfully.")
-
     return full_cal.to_ical()
 
 
 # ---------- MAIN ----------
-
-
 def ensure_output_dir() -> Path:
-    out = Path("docs")
-    out.mkdir(parents=True, exist_ok=True)
-    return out
+    """Create the GitHub Pages output directory if necessary."""
+    output = Path("docs")
+    output.mkdir(parents=True, exist_ok=True)
+    return output
 
 
 def make_filename_from_calendar_name(name: str) -> str:
-    """
-    Use the calendar name directly for the output filename "<name>.ics".
-    (If you prefer sanitization, adjust here.)
-    """
+    """Keep existing subscription filenames stable."""
     return f"{name}.ics"
 
 
-def main():
+def main() -> None:
+    """Generate the configured calendars using legend.yaml and write ICS files."""
     legend, optional_defaults, calendars = load_yaml()
-
     if not calendars:
-        print(
-            "❌ No calendars defined under 'calendars' in legend.yaml.", file=sys.stderr
-        )
+        print("No calendars defined under 'calendars' in legend.yaml.", file=sys.stderr)
         sys.exit(1)
-
     output_dir = ensure_output_dir()
-    tz = pytz.timezone("Europe/Warsaw")
-    now = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S %Z")
-
+    tz = pytz.timezone(TIMEZONE)
     for cfg in calendars:
         name = str(cfg.get("name") or "").strip()
         group = str(cfg.get("group") or "").strip()
-
         if not name or not group:
-            print(f"⏭️  Skipping calendar with missing name/group: {cfg}")
+            print(f"Skipping calendar with missing name/group: {cfg}")
             continue
-
-        # Compute which optional subjects to include for this calendar
         optional_selected = resolve_optional_selection_for_calendar(
             optional_defaults, cfg.get("optional_subjects")
         )
-
-        print(f"\n📅 Generating calendar for '{name}' ({group})")
-        if optional_selected:
-            print(f"   Optional subjects: {', '.join(optional_selected)}")
-        else:
-            print("   Optional subjects: (none)")
-
+        print(f"\nGenerating calendar for '{name}' ({group})")
+        print(f"  Optional subjects: {', '.join(optional_selected) or '(none)'}")
         cal_bytes = get_full_semester_calendar_bytes(
             group=group,
             legend=legend,
             optional_subjects_list=optional_defaults,
             optional_selected=optional_selected,
         )
-
         if not cal_bytes:
-            print(f"❌ Failed to generate calendar for '{name}' (no data).")
+            print(f"No output for '{name}'; any existing file is retained.")
             continue
-
-        # Add metadata and write to file
         cal_obj = Calendar.from_ical(cal_bytes)
-        cal_obj.add(
-            "X-CALENDAR-UPDATED", datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
-        )
-        cal_obj.add("X-WR-CALNAME", f"Plan zajęć.")
-
+        cal_obj.add("X-CALENDAR-UPDATED", datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S"))
+        cal_obj.add("X-WR-CALNAME", "Plan zajęć.")
         out_path = output_dir / make_filename_from_calendar_name(name)
-        with open(out_path, "wb") as f:
-            f.write(cal_obj.to_ical())
-
-        print(f"✅ Wrote calendar to {out_path}")
-
-    print("\n🏁 Done.")
+        out_path.write_bytes(cal_obj.to_ical())
+        print(f"Wrote calendar to {out_path}")
+    print("\nDone.")
 
 
 if __name__ == "__main__":
