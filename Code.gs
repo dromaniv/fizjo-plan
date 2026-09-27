@@ -1,6 +1,6 @@
 /**
  * ICS → Google Calendar sync + coloring (entire semester, quota-safe).
- * - Owned calendar: "Plan zajęć."
+ * - Owned calendar: "AWF"
  * - Upsert by VEVENT UID, prune removed
  * - Colors by Polish keywords
  * - Processes the whole semester, but month-by-month with write budget, sleeps, and quota backoff
@@ -10,8 +10,8 @@ const ICS_URL = "https://dromaniv.github.io/fizjo-plan/iwonka.ics";
 const TARGET_CALENDAR_NAME = "AWF"; // must be an owned calendar
 
 // Semester boundaries (inclusive)
-const SEM_START = new Date(2026, 2, 11, 0, 0, 0); // 2026-03-11 00:00:00  (month 2 = Mar)
-const SEM_END = new Date(2026, 6, 10, 23, 59, 59); // 2026-07-10 23:59:59  (month 6 = Jul)
+const SEM_START = new Date(2026, 8, 1, 0, 0, 0); // 1 September 2026 (months are zero-based)
+const SEM_END = new Date(2027, 1, 28, 23, 59, 59); // 28 February 2027
 
 // Throttling / safety knobs (tuned for Calendar operational limits & Apps Script runtime)
 const GLOBAL_WRITE_LIMIT = 400; // max create/update/delete per run (soft ceiling)
@@ -436,7 +436,7 @@ function fetchIcs_(url) {
 function readCalendarUpdated_(icsText) {
   if (!icsText) return "";
   // Unfold folded lines per RFC: CRLF + SP/HT
-  const unfolded = icsText.replace(/\r\n[ \t]/g, "");
+  const unfolded = icsText.replace(/\r?\n[ \t]/g, "");
   const m = /^X-CALENDAR-UPDATED(?:;[^:\r\n]+)?:([^\r\n]*)/m.exec(unfolded);
   return m ? decodeText_(m[1].trim()) : "";
 }
@@ -444,7 +444,7 @@ function readCalendarUpdated_(icsText) {
 function parseICS_(text) {
   if (!text) return [];
   // Unfold folded lines: RFC allows CRLF + SP/HT to continue
-  text = text.replace(/\r\n[ \t]/g, "");
+  text = text.replace(/\r?\n[ \t]/g, "");
   const out = [];
   const blocks = text.split(/BEGIN:VEVENT\r?\n/).slice(1);
   for (var i = 0; i < blocks.length; i++) {
@@ -540,7 +540,7 @@ function buildDescWithMarkers_(userText, uid, stamp, icsUpdated) {
 }
 
 function chooseColor_(ev) {
-  const title = (ev.summary || "").trim();
+  const title = (ev.summary || "").replace(/\s+/g, " ").trim().toLowerCase();
   const blob = (
     (ev.description || "") +
     " " +
@@ -548,8 +548,10 @@ function chooseColor_(ev) {
   ).toLowerCase();
 
   if (
-    title === "Podstawy prawa" ||
-    title === "Ekonomia i system ochrony zdrowia oraz zarządzanie i marketing"
+    title === "farmakologia w fizjoterapii" ||
+    title === "zdrowie publiczne" ||
+    title === "strzelectwo sportowe osób z niepełnosprawnościami" ||
+    title === "specyfika pracy terapeutycznej z dzieckiem w wieku przedszkolnym i wczesnoszkolnym w normie intelektualnej"
   ) {
     return CalendarApp.EventColor.PALE_GREEN;
   }
