@@ -69,11 +69,13 @@ calendars:
     optional_subjects:
       - Timt
       - TimtG1
-      - TimtG2
       - Sptzdwwpiwwni
       - Ssozn
       - T/KG1
-      - T/KG4
+      - Umwzf
+      - Umwzf Gr 1
+      - Umwzf Gr 1 A
+      - Umwzf Gr 1 B
 
   - name: "gracjana"
     group: "Grupa C"
