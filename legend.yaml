@@ -77,4 +77,18 @@ calendars:
 
   - name: "gracjana"
     group: "Grupa C"
-    optional_subjects: null
+    title_color_emojis: true
+    title_color_overrides:
+      Far: pale_green
+      Zp: pale_green
+      Ssozn: pale_green
+      Sptzdwwpiwwni: pale_green
+    optional_subjects:
+      - Sptzdwwpiwwni
+      - Ssozn
+      - Timt
+      - TimtG1
+      - T/KG1
+      - Umwzf
+      - Umwzf Gr 1
+      - Umwzf Gr 1 B

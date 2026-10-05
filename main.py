@@ -28,6 +28,14 @@ HTTP_TIMEOUT = 30
 DEFAULT_LOCATION = "ul. Królowej Jadwigi 27/39, Poznań, Polska"
 STREET_RE = re.compile(r"ul\.\s?[^,;\n\r]+", re.UNICODE)
 GROUP_SUFFIX_RE = re.compile(r"p([ABC])$")
+TITLE_COLOR_EMOJIS = {
+    "gray": "⚪",
+    "pale_green": "🟢",
+    "green": "🟩",
+    "yellow": "🟡",
+    "orange": "🟠",
+    "purple": "🟣",
+}
 OptionalConfig = Optional[Union[Sequence[str], Dict[str, bool]]]
 
 
@@ -176,6 +184,43 @@ def process_calendar_bytes_for_group_and_optionals(
     return cal.to_ical()
 
 
+def _add_title_color_emojis(
+    calendar: Calendar,
+    legend: Dict[str, str],
+    subject_color_overrides: Dict[str, str],
+) -> None:
+    """Prefix processed titles using Apps Script color precedence.
+
+    Overrides use YAML abbreviations and take precedence over class keywords.
+    Preserve other event properties and replace any existing emoji prefix.
+    """
+    overrides = {
+        " ".join(legend[abbr].split()).lower(): color
+        for abbr, color in subject_color_overrides.items()
+    }
+    prefixes = tuple(f"{emoji} " for emoji in TITLE_COLOR_EMOJIS.values())
+    for event in calendar.walk("vevent"):
+        title = str(event.get("summary", ""))
+        while title.startswith(prefixes):
+            title = title.split(" ", 1)[1]
+        normalized_title = " ".join(title.split()).lower()
+        blob = f"{event.get('description', '')} {title}".lower()
+        if normalized_title in overrides:
+            color = overrides[normalized_title]
+        elif "wyk" in blob:
+            color = "gray"
+        elif "ćw" in blob:
+            color = "green"
+        elif "klin" in blob:
+            color = "yellow"
+        elif re.search(r"\b(gry|gim|pł|la|reh)\b", blob, re.ASCII):
+            # ASCII word boundaries match JavaScript's chooseColor_().
+            color = "orange"
+        else:
+            color = "purple"
+        event["summary"] = f"{TITLE_COLOR_EMOJIS[color]} {title}".rstrip()
+
+
 def get_full_semester_calendar_bytes(
     *,
     group: str,
@@ -249,7 +294,7 @@ def make_filename_from_calendar_name(name: str) -> str:
 
 
 def main() -> None:
-    """Generate the configured calendars using legend.yaml and write ICS files."""
+    """Generate ICS feeds, optionally prefixing titles per calendar config."""
     legend, optional_defaults, calendars = load_yaml()
     if not calendars:
         print("No calendars defined under 'calendars' in legend.yaml.", file=sys.stderr)
@@ -277,6 +322,10 @@ def main() -> None:
             print(f"No output for '{name}'; any existing file is retained.")
             continue
         cal_obj = Calendar.from_ical(cal_bytes)
+        if cfg.get("title_color_emojis", False):
+            _add_title_color_emojis(
+                cal_obj, legend, cfg.get("title_color_overrides", {})
+            )
         cal_obj.add("X-CALENDAR-UPDATED", datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S"))
         cal_obj.add("X-WR-CALNAME", "Plan zajęć.")
         out_path = output_dir / make_filename_from_calendar_name(name)

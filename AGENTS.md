@@ -135,6 +135,10 @@ The updated title comparison collapses whitespace, trims it and lowercases it. O
 
 When changing colours, identify which layer the user intends to change. Preserve rule precedence, and test an override against a lecture description to ensure it wins over the generic lecture rule.
 
+### Optional emoji titles
+
+A calendar can enable `title_color_emojis` to prefix its processed event titles with color indicators. The default is disabled. Its `title_color_overrides` maps subject abbreviations from the legend to color keys in `TITLE_COLOR_EMOJIS`. These overrides precede the class-type rules, which follow Apps Script's keyword matching. Prefixes are added after filtering; preserve UIDs, times and other event properties. Do not enable this for other calendars unless requested.
+
 ## ICS and time handling
 
 - Preserve UTF-8 and Polish characters.
