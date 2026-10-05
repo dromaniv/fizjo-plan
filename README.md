@@ -7,7 +7,7 @@ This project automatically fetches, processes, and publishes physiotherapy class
 ## ✨ Features
 
 - **🔄 Automated Schedule Fetching**: Daily automatic updates via GitHub Actions
-- **👥 Multi-Group Support**: Handles different student groups (Grupa A, B, C)
+- **👥 Multi-Group Support**: Selects a subgroup for each subject
 - **🎯 Optional Subject Filtering**: Customizable selection of optional subjects per calendar
 - **📱 ICS Calendar Feeds**: Generates standard calendar files compatible with Google Calendar, Apple Calendar, etc.
 - **🎨 Color Coding**: Automatically color-codes different types of classes:
@@ -72,17 +72,25 @@ Individual calendar configurations:
 ```yaml
 calendars:
   - name: "awf"
-    group: "Grupa A"
+    subject_groups:
+      Wm: A
+      Pfwcw: A
     optional_subjects:  # Empty = include all optional subjects
 
   - name: "iwonka"
-    group: "Grupa B"
+    subject_groups:
+      Wm: B
+      Pfwcw: B
     optional_subjects: ["GG1", "GG2", "ZwtTzG1", "ZwtTzG2", "TkuwzigrG1"]
 
   - name: "ola"
-    group: "Grupa C"
+    subject_groups:
+      Wm: B
+      Pfwcw: null  # Awaiting confirmation
     optional_subjects: ["JG1", "TkuwzigrG1", "ZwtTzG1", "ZwtTzG2"]
 ```
+
+`subject_groups` selects A or B separately for each subject. A null or omitted entry leaves its split sessions out until the assignment is confirmed. Shared sessions remain included.
 
 ### Remote Classes
 Classes are automatically detected as remote when the summary or description contains the word "zdalne" (remote in Polish). These classes will have their location set to "Zdalnie" instead of a physical address.

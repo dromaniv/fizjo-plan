@@ -15,7 +15,7 @@ This guide describes stable behaviour and maintenance rules. Read the current so
 | Python fetch range | `START_OF_SEMESTER` and `END_OF_SEMESTER` in `main.py` |
 | Subject abbreviations and full names | `abbreviations` in `legend.yaml` |
 | Which subjects are optional | Global `optional_subjects` in `legend.yaml` |
-| Calendar names, groups and selections | `calendars` in `legend.yaml` |
+| Calendar names, subject groups and selections | `calendars` in `legend.yaml` |
 | Python dependencies | `requirements.txt` |
 | CI Python version, schedule and deployment steps | `.github/workflows/` |
 | Google Calendar feed and destination | `ICS_URL` and `TARGET_CALENDAR_NAME` in the relevant Apps Script project |
@@ -69,12 +69,12 @@ Whitespace between tokens is normalised for matching, while token offsets retain
 Attached group suffixes are processed separately:
 
 - Recognised suffixes are `pA`, `pB` and `pC`.
-- Drop events whose suffix does not match the configured student group.
+- Drop events whose suffix does not match the subject's entry in `subject_groups`.
 - Strip the suffix before optional-subject filtering and full-name lookup.
 
-For example, a hypothetical `SubjectpB` maps to `Subject` after Group B filtering.
+A calendar's `subject_groups` maps base subject abbreviations to `A`, `B` or null. For example, `Core: B` selects `CorepB`. Null or omitted subjects exclude split sessions until their assignment is confirmed; shared sessions without a suffix remain included. Historical `pC` markers are recognised but excluded because C is not a supported selection for this semester.
 
-Named variants such as `SubjectG1`, `Subject Gr 1` or `Subject Gr 1 A` are independent abbreviations. They are not automatically selected by `group: "Grupa A"`. List the required variants explicitly. A base abbreviation and a group-specific abbreviation may represent separate sessions; verify the source before excluding either.
+Named variants such as `SubjectG1`, `Subject Gr 1` or `Subject Gr 1 A` are independent abbreviations. They are selected through the optional-subject list. A base abbreviation and a group-specific abbreviation may represent separate sessions; verify the source before excluding either.
 
 ## YAML behaviour
 
@@ -105,7 +105,8 @@ optional_subjects:
 
 calendars:
   - name: "example"
-    group: "Grupa B"
+    subject_groups:
+      Core: B
     optional_subjects:
       - Elective
       - Elective Gr 1

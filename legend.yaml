@@ -40,19 +40,21 @@ optional_subjects:
 
 calendars:
   - name: "grupaA"
-    group: "Grupa A"
+    subject_groups:
+      Wm: A
+      Pfwcw: A
     optional_subjects: null
 
   - name: "grupaB"
-    group: "Grupa B"
-    optional_subjects: null
-
-  - name: "grupaC"
-    group: "Grupa C"
+    subject_groups:
+      Wm: B
+      Pfwcw: B
     optional_subjects: null
 
   - name: "iwonka"
-    group: "Grupa B"
+    subject_groups:
+      Wm: B
+      Pfwcw: B
     optional_subjects:
       - Sptzdwwpiwwni
       - Ssozn
@@ -64,7 +66,9 @@ calendars:
       - Umwzf Gr 1 B
 
   - name: "ola"
-    group: "Grupa C"
+    subject_groups:
+      Wm: B
+      Pfwcw: B
     optional_subjects:
       - Timt
       - TimtG1
@@ -76,7 +80,9 @@ calendars:
       - Umwzf Gr 1 B
 
   - name: "gracjana"
-    group: "Grupa C"
+    subject_groups:
+      Wm: B
+      Pfwcw: B
     title_color_emojis: true
     title_color_overrides:
       Far: pale_green

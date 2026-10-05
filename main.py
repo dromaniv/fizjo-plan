@@ -126,18 +126,21 @@ def _split_summary(
 def process_calendar_bytes_for_group_and_optionals(
     calendar_bytes: bytes,
     legend: Dict[str, str],
-    group: str,
+    subject_groups: Dict[str, Optional[str]],
     optional_subjects_list: List[str],
     optional_selected: Tuple[str, ...],
 ) -> bytes:
-    """Filter group/optionals, expand titles, and set color/location/description.
+    """Filter subject groups/optionals and set titles, color and location.
 
     Attached pA/pB/pC markers are removed BEFORE optional filtering.
+    Each subject selects its own subgroup; null or omitted excludes split sessions.
     Named variants such as 'Umwzf Gr 1 A' remain exact-match selections.
     """
     cal = Calendar.from_ical(calendar_bytes)
     optional_set = set(optional_subjects_list)
     selected_set = set(optional_selected)
+    if any(value not in ("A", "B", None) for value in subject_groups.values()):
+        raise ValueError("Subject groups must be A, B or null.")
     known = tuple(set(legend) | optional_set | selected_set)
 
     for component in list(cal.walk("vevent")):
@@ -150,10 +153,11 @@ def process_calendar_bytes_for_group_and_optionals(
 
         suffix = GROUP_SUFFIX_RE.search(abbreviation)
         if suffix:
-            if suffix.group(1) != group[-1:]:
+            base_abbreviation = abbreviation[:-2]
+            if suffix.group(1) != subject_groups.get(base_abbreviation):
                 cal.subcomponents.remove(component)
                 continue
-            abbreviation = abbreviation[:-2]
+            abbreviation = base_abbreviation
 
         if abbreviation in optional_set and abbreviation not in selected_set:
             cal.subcomponents.remove(component)
@@ -223,7 +227,7 @@ def _add_title_color_emojis(
 
 def get_full_semester_calendar_bytes(
     *,
-    group: str,
+    subject_groups: Dict[str, Optional[str]],
     legend: Dict[str, str],
     optional_subjects_list: List[str],
     optional_selected: Tuple[str, ...],
@@ -233,6 +237,7 @@ def get_full_semester_calendar_bytes(
     """Merge complete weeks covering the range, continuing after failed weeks.
 
     Returns None if no events remain. Boundary weeks are included in full.
+    Apply the same subject groups to every week.
     """
     if end_of_semester < start_of_semester:
         raise ValueError("Semester end must not precede semester start.")
@@ -255,7 +260,7 @@ def get_full_semester_calendar_bytes(
             processed = process_calendar_bytes_for_group_and_optionals(
                 raw_bytes,
                 legend=legend,
-                group=group,
+                subject_groups=subject_groups,
                 optional_subjects_list=optional_subjects_list,
                 optional_selected=optional_selected,
             )
@@ -303,17 +308,16 @@ def main() -> None:
     tz = pytz.timezone(TIMEZONE)
     for cfg in calendars:
         name = str(cfg.get("name") or "").strip()
-        group = str(cfg.get("group") or "").strip()
-        if not name or not group:
-            print(f"Skipping calendar with missing name/group: {cfg}")
+        if not name:
+            print(f"Skipping calendar with missing name: {cfg}")
             continue
         optional_selected = resolve_optional_selection_for_calendar(
             optional_defaults, cfg.get("optional_subjects")
         )
-        print(f"\nGenerating calendar for '{name}' ({group})")
+        print(f"\nGenerating calendar for '{name}'")
         print(f"  Optional subjects: {', '.join(optional_selected) or '(none)'}")
         cal_bytes = get_full_semester_calendar_bytes(
-            group=group,
+            subject_groups=cfg.get("subject_groups") or {},
             legend=legend,
             optional_subjects_list=optional_defaults,
             optional_selected=optional_selected,
