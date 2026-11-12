@@ -142,7 +142,7 @@ Visit the [live site](https://dromaniv.github.io/fizjo-plan/) to subscribe to av
 
 1. Edit `legend.yaml` to add a new calendar entry
 2. Specify the student group and optional subjects
-3. Commit changes. The daily GitHub Actions run generates the new calendar; use the manual workflow trigger to run it sooner.
+3. Commit changes. The daily GitHub Actions run generates the new calendar. The manual workflow trigger defaults to a dry run; on `main`, turn off `dry_run` to publish sooner.
 
 ### Testing and dependency updates
 
@@ -187,6 +187,9 @@ The Apps Script rejects malformed, empty and duplicate-UID feeds before writing.
 - The update schedule and manual trigger are defined in `.github/workflows/main.yml`.
 - Generation runs with read-only repository permissions and hash-verified dependencies. Failed generation blocks publication.
 - A separate publication job copies only `.ics` data and commits it. That job has repository write access and does not install project dependencies or execute feed contents.
+- Generated artifacts are downloaded and checked in a read-only job before publication. Manual dry runs exercise generation and artifact transfer on any branch; publication is restricted to `main`.
+- A separate job requests a GitHub Pages build and waits for success, including when the feeds did not change. Token-generated commits do not automatically trigger branch-based Pages builds. [GitHub documentation](https://docs.github.com/en/actions/concepts/security/github_token).
+- Concurrent runs are serialized. If another commit reaches `main` before a feed push, the push fails without overwriting it; rerun generation from the updated branch.
 
 ### Google Apps Script Integration
 The included `Code.gs` provides advanced Google Calendar synchronization with:

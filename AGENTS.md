@@ -227,7 +227,9 @@ For Apps Script, local JavaScript syntax checks and mocked parser/colour checks 
 
 Read `.github/workflows/` for the current triggers, runtime, dependencies, permissions and publication mechanism. Do not assume a fixed schedule, workflow filename or Pages deployment method.
 
-Runtime dependencies and their transitive dependencies are pinned with hashes in `requirements.txt`; update `requirements.in` and regenerate the lock using the README instructions. Generation and PR checks have read-only repository permissions and no persisted checkout credentials. Only the separate publication job has write permission; it must never install project dependencies or execute generated content. Keep third-party actions pinned to full commit SHAs.
+Runtime dependencies and their transitive dependencies are pinned with hashes in `requirements.txt`; update `requirements.in` and regenerate the lock using the README instructions. Generation, artifact verification and PR checks have read-only repository permissions and no persisted checkout credentials. Only the separate publication job has repository contents write permission; it must never install project dependencies or execute generated content. A separate Pages job has Pages write permission and explicitly requests and checks a build, because `GITHUB_TOKEN` pushes do not trigger branch-based Pages builds. Keep third-party actions pinned to full commit SHAs.
+
+Manual updates default to a dry run. They can generate and verify artifacts on any branch; only a non-dry run on `main` or its scheduled run can publish. The same trusted shell validator checks artifact files before both verification and publication. Preserve non-fast-forward push rejection rather than force-pushing over concurrent changes.
 
 Apps Script triggers are separate from GitHub Actions. Updating the repository does not change an existing Apps Script trigger or deployed script automatically. Verify each intended project independently.
 

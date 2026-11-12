@@ -5,6 +5,11 @@ on:
     - cron: "0 1 * * *"
       timezone: "Europe/Warsaw"
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Generate and verify feeds without publishing"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -15,7 +20,6 @@ concurrency:
 
 jobs:
   generate:
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -41,8 +45,29 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  publish:
+  verify_artifact:
     needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: calendar-feeds
+          path: ${{ runner.temp }}/calendar-feeds
+      - name: Verify downloaded calendar data
+        env:
+          FEED_DIR: ${{ runner.temp }}/calendar-feeds
+        run: bash .github/scripts/copy-calendar-feeds.sh
+      - name: Show generated changes
+        run: git diff --stat -- docs/
+
+  publish:
+    needs: verify_artifact
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || !inputs.dry_run)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -60,25 +85,7 @@ jobs:
       - name: Copy calendar data
         env:
           FEED_DIR: ${{ runner.temp }}/calendar-feeds
-        run: |
-          shopt -s nullglob
-          files=("$FEED_DIR"/*.ics)
-          if [[ ${#files[@]} -eq 0 ]]; then
-            echo "::error::No calendar artifacts found"
-            exit 1
-          fi
-          for file in "${files[@]}"; do
-            name="${file##*/}"
-            if [[ ! "$name" =~ ^[A-Za-z0-9_-]+\.ics$ || ! -f "$file" || -L "$file" ]]; then
-              echo "::error::Invalid calendar artifact"
-              exit 1
-            fi
-            if [[ $(wc -c < "$file") -gt 2097152 ]]; then
-              echo "::error::Calendar artifact exceeds the size limit"
-              exit 1
-            fi
-            cp -- "$file" "docs/$name"
-          done
+        run: bash .github/scripts/copy-calendar-feeds.sh
       - name: Commit and push calendars
         env:
           GH_TOKEN: ${{ github.token }}
@@ -90,5 +97,37 @@ jobs:
             exit 0
           fi
           git commit -m "Auto-update schedules [skip ci]"
-          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push origin HEAD:main
+
+  pages:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+    steps:
+      # GITHUB_TOKEN pushes do not automatically rebuild branch-based Pages.
+      # Request a build even if git had no changes, so failed builds can recover.
+      - name: Rebuild and verify GitHub Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          build_url="$(gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds" --jq .url)"
+          for attempt in {1..30}; do
+            status="$(gh api "$build_url" --jq .status)"
+            case "$status" in
+              built) exit 0 ;;
+              errored)
+                echo "::error::GitHub Pages build failed"
+                exit 1
+                ;;
+              queued|building) sleep 10 ;;
+              *)
+                echo "::error::Unexpected GitHub Pages build status: $status"
+                exit 1
+                ;;
+            esac
+          done
+          echo "::error::Timed out waiting for GitHub Pages"
+          exit 1
