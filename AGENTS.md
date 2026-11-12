@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Fizjo-Plan fetches weekly physiotherapy timetables from AWF Poznań, filters events for student groups and optional-subject selections, and publishes ICS calendar feeds. An optional Google Apps Script synchronises a feed into an owned Google Calendar and applies event colours.
+Fizjo-Plan fetches a physiotherapy timetable snapshot from AWF Poznań, filters it to configured weeks, student groups and optional-subject selections, and publishes ICS calendar feeds. An optional Google Apps Script synchronises a feed into an owned Google Calendar and applies event colours.
 
 This guide describes stable behaviour and maintenance rules. Read the current source before making changes. Do not treat examples here as live configuration.
 
@@ -17,6 +17,7 @@ This guide describes stable behaviour and maintenance rules. Read the current so
 | Which subjects are optional | Global `optional_subjects` in `legend.yaml` |
 | Calendar names, subject groups and selections | `calendars` in `legend.yaml` |
 | Python dependencies | `requirements.txt` |
+| Direct dependencies and lock regeneration | `requirements.in` and `README.md` |
 | CI Python version, schedule and deployment steps | `.github/workflows/` |
 | Google Calendar feed and destination | `ICS_URL` and `TARGET_CALENDAR_NAME` in the relevant Apps Script project |
 | Google Calendar sync range | `SEM_START` and `SEM_END` in the relevant Apps Script project |
@@ -40,9 +41,9 @@ The Python flow is:
 
 1. Load and normalise YAML configuration.
 2. Calculate AWF week numbers for the configured range.
-3. Download and process each week's ICS for each configured calendar.
-4. Merge retained events and add calendar metadata.
-5. Write `docs/{calendar_name}.ics` for publication.
+3. Download the full-year ICS snapshot once for all configured calendars.
+4. Select events in the complete configured weeks, filter each calendar and add metadata.
+5. Validate every output, then write `docs/{calendar_name}.ics` for publication.
 
 The endpoint returns ICS despite its historically named download parameter. Do not parse it as CSV.
 
@@ -161,19 +162,23 @@ Known behaviours in the current implementation:
 
 - Description metadata includes a per-run sync timestamp, so unchanged events can still incur writes every run.
 - `isoDate_()` uses UTC formatting, which can display the preceding date for a local-midnight boundary. This is a log display issue, not evidence of a shifted event.
-- Deletion is based on absence from the current monthly feed index. Do not assume cross-month moves are handled globally just because a semester-wide index is passed into the function.
+- Existing synced events and deletion candidates are indexed across the semester. Preserve this scope when changing monthly processing: a move between months must update the original event without creating a duplicate or deleting it.
 - The parser is tailored to the generated feed. Do not assume full support for arbitrary ICS recurrence, time-zone definitions or all-day event semantics.
-- Missing or duplicate source UIDs can affect synchronisation. Inspect the feed if events disappear or overwrite one another.
+- Malformed, empty and duplicate-UID feeds stop sync before writes. Large removals disable deletions for that run; read the current threshold from `MAX_REMOVAL_FRACTION`. Existing duplicate sync markers also stop the run.
 
 Do not silently redesign synchronisation during a configuration-only update. If fixing sync behaviour, test repeated runs, moved events and removal of genuinely deleted events with mocks or a dedicated test calendar.
 
 ## Error handling and publication
 
-The Python generator continues after individual failed weeks and reports failures separately from successfully parsed weeks with no retained events.
+The Python generator uses one full-year snapshot instead of merging weekly downloads. All configured calendar outputs are prepared and validated before replacing files, so download or validation failures retain the existing feeds.
 
 AWF can return HTML even when an ICS download is requested. A parse failure does not prove that the week has no classes. Inspect the response before classifying it as empty.
 
-If no events remain for a calendar, the generator returns `None` and retains any existing output file. If some weeks succeed and others fail, it can publish a partial calendar. Consider that behaviour when diagnosing missing events: a downstream sync that prunes missing UIDs can interpret omissions as deletions.
+AWF can reuse a UID for simultaneous A/B sessions. Permit duplicate UIDs in the raw snapshot, then require unique UIDs after per-subject group filtering. Do not change existing event UIDs to resolve a source collision.
+
+If no events remain for a calendar, the generator returns `None` and retains any existing output file. Large UID removals also block publication; read the threshold from `MAX_REMOVAL_FRACTION` in `main.py`. The local `--allow-large-removals` option permits reviewed bulk changes but does not bypass failed downloads or malformed input.
+
+AWF's configured endpoint uses HTTP. Until a verified HTTPS endpoint is available, treat responses as unauthenticated. Downloads are bounded and redirects rejected. Validate calendar boundaries, nesting, UIDs and dates, and republish only properties in `SAFE_EVENT_PROPERTIES` plus the processed title, description, location and colour. Source alarms, attachments, attendee instructions and other properties are dropped.
 
 Keep errors visible. Do not silently convert malformed responses into successful empty calendars. Preserve timeouts and avoid unnecessary repeated requests to AWF.
 
@@ -196,6 +201,8 @@ Install dependencies using the repository's documented workflow and supported Py
 
 ```bash
 python -m py_compile main.py
+python -m unittest discover -s tests -v
+node --test tests/test_sync.cjs
 python main.py
 rg '^SUMMARY' docs/example.ics
 ```
@@ -219,6 +226,10 @@ For Apps Script, local JavaScript syntax checks and mocked parser/colour checks 
 ## Automation and deployment
 
 Read `.github/workflows/` for the current triggers, runtime, dependencies, permissions and publication mechanism. Do not assume a fixed schedule, workflow filename or Pages deployment method.
+
+Runtime dependencies and their transitive dependencies are pinned with hashes in `requirements.txt`; update `requirements.in` and regenerate the lock using the README instructions. Generation, artifact verification and PR checks have read-only repository permissions and no persisted checkout credentials. Only the separate publication job has repository contents write permission; it must never install project dependencies or execute generated content. A separate Pages job has Pages write permission and explicitly requests and checks a build, because `GITHUB_TOKEN` pushes do not trigger branch-based Pages builds. Keep third-party actions pinned to full commit SHAs.
+
+Manual updates default to a dry run. They can generate and verify artifacts on any branch; only a non-dry run on `main` or its scheduled run can publish. The same trusted shell validator checks artifact files before both verification and publication. Preserve non-fast-forward push rejection rather than force-pushing over concurrent changes.
 
 Apps Script triggers are separate from GitHub Actions. Updating the repository does not change an existing Apps Script trigger or deployed script automatically. Verify each intended project independently.
 

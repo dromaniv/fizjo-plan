@@ -4,39 +4,130 @@ on:
   schedule:
     - cron: "0 1 * * *"
       timezone: "Europe/Warsaw"
-  workflow_dispatch:       # manual trigger
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Generate and verify feeds without publishing"
+        type: boolean
+        default: true
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: update-schedules
+  cancel-in-progress: false
 
 jobs:
-  build:
+  generate:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 20
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.11"
-
-      - name: Install dependencies
+      - name: Install locked dependencies
         run: |
-          pip install requests pyyaml icalendar pytz
-
-      - name: Run the schedule script
+          python -m pip install --require-hashes --only-binary=:all: -r requirements.txt
+      - name: Test generation and sync safeguards
         run: |
-          echo "➡️ Running main.py ..."
-          python main.py || echo "⚠️ main.py failed"
+          python -m unittest discover -s tests -v
+          node --test tests/test_sync.cjs
+      - name: Generate complete calendars
+        run: python main.py
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: calendar-feeds
+          path: docs/*.ics
+          if-no-files-found: error
+          retention-days: 1
 
-      - name: Commit & push changes
+  verify_artifact:
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: calendar-feeds
+          path: ${{ runner.temp }}/calendar-feeds
+      - name: Verify downloaded calendar data
+        env:
+          FEED_DIR: ${{ runner.temp }}/calendar-feeds
+        run: bash .github/scripts/copy-calendar-feeds.sh
+      - name: Show generated changes
+        run: git diff --stat -- docs/
+
+  publish:
+    needs: verify_artifact
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || !inputs.dry_run)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: calendar-feeds
+          path: ${{ runner.temp }}/calendar-feeds
+      # Do not install dependencies or execute generated files in this job.
+      - name: Copy calendar data
+        env:
+          FEED_DIR: ${{ runner.temp }}/calendar-feeds
+        run: bash .github/scripts/copy-calendar-feeds.sh
+      - name: Commit and push calendars
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add -f docs/*.ics
-          git commit -m "Auto-update schedules [skip ci]" || echo "No changes"
-          git push
+          git add -- docs/*.ics
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Auto-update schedules [skip ci]"
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push origin HEAD:main
+
+  pages:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+    steps:
+      # GITHUB_TOKEN pushes do not automatically rebuild branch-based Pages.
+      # Request a build even if git had no changes, so failed builds can recover.
+      - name: Rebuild and verify GitHub Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          build_url="$(gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds" --jq .url)"
+          for attempt in {1..30}; do
+            status="$(gh api "$build_url" --jq .status)"
+            case "$status" in
+              built) exit 0 ;;
+              errored)
+                echo "::error::GitHub Pages build failed"
+                exit 1
+                ;;
+              queued|building) sleep 10 ;;
+              *)
+                echo "::error::Unexpected GitHub Pages build status: $status"
+                exit 1
+                ;;
+            esac
+          done
+          echo "::error::Timed out waiting for GitHub Pages"
+          exit 1

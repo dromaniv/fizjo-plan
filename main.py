@@ -3,6 +3,7 @@
 
 from datetime import datetime, timedelta
 from pathlib import Path
+import argparse
 import re
 import sys
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
@@ -10,7 +11,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import pytz
 import requests
 import yaml
-from icalendar import Calendar
+from icalendar import Calendar, Event
 
 
 # ---------- CONFIGURATION ----------
@@ -18,13 +19,27 @@ LEGEND_FILE = "legend.yaml"
 BASE_DATE = datetime(2025, 2, 17)  # Monday, AWF week 657
 BASE_WEEKNUM = 657
 AWF_PLAN_URL = (
-    "http://web0.awf.poznan.pl/plan/plan.php?type=0&id=112976&cvsfile=true&w={week}"
+    # AWF's published timetable endpoint currently has no working HTTPS listener.
+    "http://web0.awf.poznan.pl/plan/plan.php?type=0&id=112976&cvsfile=true&wd=1&bw=0"
 )
 # Broad autumn/winter fetch range; adjust to confirmed semester boundaries.
 START_OF_SEMESTER = datetime(2026, 9, 1)
 END_OF_SEMESTER = datetime(2027, 2, 28)
 TIMEZONE = "Europe/Warsaw"
 HTTP_TIMEOUT = 30
+MAX_CALENDAR_BYTES = 2 * 1024 * 1024
+MAX_COMPONENT_DEPTH = 8
+MAX_REMOVAL_FRACTION = 0.25
+SAFE_EVENT_PROPERTIES = (
+    "UID",
+    "DTSTART",
+    "DTEND",
+    "DTSTAMP",
+    "SEQUENCE",
+    "CLASS",
+    "STATUS",
+    "TRANSP",
+)
 DEFAULT_LOCATION = "ul. Królowej Jadwigi 27/39, Poznań, Polska"
 STREET_RE = re.compile(r"ul\.\s?[^,;\n\r]+", re.UNICODE)
 GROUP_SUFFIX_RE = re.compile(r"p([ABC])$")
@@ -56,9 +71,7 @@ def load_yaml(
             if isinstance(cfg, dict):
                 calendars.append({"name": name, **cfg})
     elif isinstance(calendars_raw, list):
-        calendars = [
-            c for c in calendars_raw if isinstance(c, dict) and "name" in c
-        ]
+        calendars = [c for c in calendars_raw if isinstance(c, dict) and "name" in c]
     return legend, optional_subjects, calendars
 
 
@@ -91,19 +104,89 @@ def resolve_optional_selection_for_calendar(
     return tuple(sorted(set(global_optional_subjects)))
 
 
-def fetch_awf_calendar_week(week_number: int) -> bytes:
-    """Download one AWF calendar week with an HTTP timeout."""
-    response = requests.get(
-        AWF_PLAN_URL.format(week=week_number),
+def fetch_awf_calendar() -> bytes:
+    """Download AWF's full-year snapshot without following redirects."""
+    with requests.get(
+        AWF_PLAN_URL,
         timeout=HTTP_TIMEOUT,
+        stream=True,
+        allow_redirects=False,
         headers={"User-Agent": "AWF-Plan-Downloader/1.0"},
-    )
-    response.raise_for_status()
-    return response.content
+    ) as response:
+        response.raise_for_status()
+        if response.status_code != 200:
+            raise ValueError(f"Unexpected AWF response status: {response.status_code}")
+        content = bytearray()
+        for chunk in response.iter_content(64 * 1024):
+            content.extend(chunk)
+            if len(content) > MAX_CALENDAR_BYTES:
+                raise ValueError("AWF calendar exceeds the response size limit.")
+        return bytes(content)
+
+
+def parse_calendar_bytes(
+    calendar_bytes: bytes, *, allow_duplicate_uids: bool = False
+) -> Calendar:
+    """Reject incomplete, oversized or deeply nested calendars before parsing."""
+    if len(calendar_bytes) > MAX_CALENDAR_BYTES:
+        raise ValueError("Calendar exceeds the size limit.")
+    text = calendar_bytes.decode("utf-8-sig").strip()
+    lines = re.sub(r"\r?\n[ \t]", "", text).splitlines()
+    if not lines or lines[0] != "BEGIN:VCALENDAR" or lines[-1] != "END:VCALENDAR":
+        raise ValueError("Expected a complete VCALENDAR document.")
+    stack: List[str] = []
+    for index, line in enumerate(lines):
+        if line.startswith("BEGIN:"):
+            if not stack and index != 0:
+                raise ValueError("Multiple calendar documents are not supported.")
+            stack.append(line[6:])
+            if len(stack) > MAX_COMPONENT_DEPTH:
+                raise ValueError("Calendar component nesting exceeds the limit.")
+        elif line.startswith("END:"):
+            if not stack or stack.pop() != line[4:]:
+                raise ValueError("Mismatched calendar component boundaries.")
+        elif not stack:
+            raise ValueError("Unexpected content outside the calendar.")
+    if stack:
+        raise ValueError("Incomplete calendar component.")
+    calendar = Calendar.from_ical(calendar_bytes)
+    if calendar.name != "VCALENDAR" or str(calendar.get("VERSION")) != "2.0":
+        raise ValueError("Expected an iCalendar 2.0 document.")
+    seen = set()
+    top_level_ids = {id(component) for component in calendar.subcomponents}
+    for event in calendar.walk("VEVENT"):
+        if id(event) not in top_level_ids:
+            raise ValueError("Nested events are not supported.")
+        uid = str(event.get("UID", ""))
+        if (
+            not uid
+            or re.search(r"\s", uid)
+            or (uid in seen and not allow_duplicate_uids)
+        ):
+            raise ValueError(
+                "Event UIDs must be present, unique and contain no whitespace."
+            )
+        seen.add(uid)
+        if not str(event.get("SUMMARY", "")).strip():
+            raise ValueError(f"Event {uid} has no summary.")
+        start = event.decoded("DTSTART")
+        end = event.decoded("DTEND")
+        if (
+            not isinstance(start, datetime)
+            or not isinstance(end, datetime)
+            or end <= start
+        ):
+            raise ValueError(f"Event {uid} has invalid start/end times.")
+        if event.errors or any(
+            key in event for key in ("RRULE", "RDATE", "RECURRENCE-ID")
+        ):
+            raise ValueError(f"Event {uid} has invalid or unsupported properties.")
+    return calendar
 
 
 def _split_summary(
-    summary: str, known_abbreviations: Sequence[str],
+    summary: str,
+    known_abbreviations: Sequence[str],
 ) -> Tuple[str, str]:
     """Match the longest known prefix, allowing attached pA/pB/pC markers.
 
@@ -116,7 +199,7 @@ def _split_summary(
         candidate = " ".join(token.group() for token in tokens[:count])
         base = GROUP_SUFFIX_RE.sub("", candidate)
         if candidate in known or base in known:
-            return candidate, summary[tokens[count - 1].end():].strip()
+            return candidate, summary[tokens[count - 1].end() :].strip()
     if len(tokens) <= 4:
         return summary.strip(), ""
     end = tokens[3].end()
@@ -136,14 +219,28 @@ def process_calendar_bytes_for_group_and_optionals(
     Each subject selects its own subgroup; null or omitted excludes split sessions.
     Named variants such as 'Umwzf Gr 1 A' remain exact-match selections.
     """
-    cal = Calendar.from_ical(calendar_bytes)
+    # AWF can assign the same UID to simultaneous A/B sessions. Validate their
+    # uniqueness after selecting the calendar's subject groups.
+    cal = parse_calendar_bytes(calendar_bytes, allow_duplicate_uids=True)
     optional_set = set(optional_subjects_list)
     selected_set = set(optional_selected)
     if any(value not in ("A", "B", None) for value in subject_groups.values()):
         raise ValueError("Subject groups must be A, B or null.")
     known = tuple(set(legend) | optional_set | selected_set)
 
-    for component in list(cal.walk("vevent")):
+    retained = [
+        component for component in cal.subcomponents if component.name != "VEVENT"
+    ]
+    for source in cal.subcomponents:
+        if source.name != "VEVENT":
+            continue
+        # Republish only schedule data; source alarms, attachments and attendee
+        # instructions must not reach subscribers from this unauthenticated feed.
+        component = Event()
+        for key in SAFE_EVENT_PROPERTIES:
+            if key in source:
+                component[key] = source[key]
+        component["summary"] = source.get("summary", "")
         summary = component.get("summary")
         if not summary:
             continue
@@ -155,12 +252,10 @@ def process_calendar_bytes_for_group_and_optionals(
         if suffix:
             base_abbreviation = abbreviation[:-2]
             if suffix.group(1) != subject_groups.get(base_abbreviation):
-                cal.subcomponents.remove(component)
                 continue
             abbreviation = base_abbreviation
 
         if abbreviation in optional_set and abbreviation not in selected_set:
-            cal.subcomponents.remove(component)
             continue
 
         if "wyk" in lower:
@@ -183,9 +278,14 @@ def process_calendar_bytes_for_group_and_optionals(
             street = STREET_RE.search(remainder)
             component["location"] = (
                 f"ul. {street.group()[3:].strip()}, Poznań, Polska"
-                if street else DEFAULT_LOCATION
+                if street
+                else DEFAULT_LOCATION
             )
-    return cal.to_ical()
+        retained.append(component)
+    cal.subcomponents = retained
+    output = cal.to_ical()
+    parse_calendar_bytes(output)
+    return output
 
 
 def _add_title_color_emojis(
@@ -233,8 +333,9 @@ def get_full_semester_calendar_bytes(
     optional_selected: Tuple[str, ...],
     start_of_semester: datetime = START_OF_SEMESTER,
     end_of_semester: datetime = END_OF_SEMESTER,
+    calendar_bytes: Optional[bytes] = None,
 ) -> Optional[bytes]:
-    """Merge complete weeks covering the range, continuing after failed weeks.
+    """Filter one complete snapshot to the configured weeks and selections.
 
     Returns None if no events remain. Boundary weeks are included in full.
     Apply the same subject groups to every week.
@@ -243,42 +344,33 @@ def get_full_semester_calendar_bytes(
         raise ValueError("Semester end must not precede semester start.")
     start_week = get_week_number(start_of_semester)
     end_week = get_week_number(end_of_semester)
+    snapshot = parse_calendar_bytes(
+        calendar_bytes if calendar_bytes is not None else fetch_awf_calendar(),
+        allow_duplicate_uids=True,
+    )
+    # Keep complete boundary weeks, as with the previous weekly downloads.
+    source_tz = pytz.timezone(TIMEZONE)
+    for event in list(snapshot.walk("VEVENT")):
+        start = event.decoded("DTSTART")
+        local_start = start.astimezone(source_tz) if start.tzinfo else start
+        if not start_week <= get_week_number(local_start) <= end_week:
+            snapshot.subcomponents.remove(event)
+    processed = process_calendar_bytes_for_group_and_optionals(
+        snapshot.to_ical(),
+        legend=legend,
+        subject_groups=subject_groups,
+        optional_subjects_list=optional_subjects_list,
+        optional_selected=optional_selected,
+    )
+    filtered = parse_calendar_bytes(processed)
     full_cal = Calendar()
     full_cal.add("prodid", "-//ATS4//Plan zajęć.//PL")
     full_cal.add("version", "2.0")
     full_cal.add("calscale", "GREGORIAN")
     full_cal.add("method", "PUBLISH")
     full_cal.add("X-WR-TIMEZONE", TIMEZONE)
-    total_weeks = end_week - start_week + 1
-    empty_weeks: List[int] = []
-    failed_weeks: List[int] = []
-
-    for i, week in enumerate(range(start_week, end_week + 1), start=1):
-        print(f"  Fetching week {i}/{total_weeks} ({get_date_from_week_number(week)})")
-        try:
-            raw_bytes = fetch_awf_calendar_week(week)
-            processed = process_calendar_bytes_for_group_and_optionals(
-                raw_bytes,
-                legend=legend,
-                subject_groups=subject_groups,
-                optional_subjects_list=optional_subjects_list,
-                optional_selected=optional_selected,
-            )
-            week_cal = Calendar.from_ical(processed)
-            events = list(week_cal.walk("vevent"))
-            if not events:
-                empty_weeks.append(week)
-            for component in events:
-                full_cal.add_component(component)
-        except Exception as exc:
-            print(f"    Could not process week {week}: {exc}")
-            failed_weeks.append(week)
-
-    for label, weeks in (("Empty after filtering", empty_weeks), ("Failed", failed_weeks)):
-        if weeks:
-            print(f"{label} weeks:")
-            for week in weeks:
-                print(f"  - {get_date_from_week_number(week)}")
+    for event in filtered.walk("VEVENT"):
+        full_cal.add_component(event)
     if not full_cal.subcomponents:
         print("No class schedule available for this calendar in the selected range.")
         return None
@@ -295,10 +387,28 @@ def ensure_output_dir() -> Path:
 
 def make_filename_from_calendar_name(name: str) -> str:
     """Keep existing subscription filenames stable."""
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", name):
+        raise ValueError(
+            "Calendar names may contain only letters, digits, underscores and hyphens."
+        )
     return f"{name}.ics"
 
 
-def main() -> None:
+def validate_calendar_removals(previous: bytes, current: bytes) -> None:
+    """Stop unexpectedly large removals before replacing a published feed."""
+    old_uids = {
+        str(event["UID"]) for event in parse_calendar_bytes(previous).walk("VEVENT")
+    }
+    new_uids = {
+        str(event["UID"]) for event in parse_calendar_bytes(current).walk("VEVENT")
+    }
+    if old_uids and len(old_uids - new_uids) / len(old_uids) > MAX_REMOVAL_FRACTION:
+        raise ValueError(
+            "Refusing a large event removal; inspect the source before using --allow-large-removals."
+        )
+
+
+def main(*, allow_large_removals: bool = False) -> None:
     """Generate ICS feeds, optionally prefixing titles per calendar config."""
     legend, optional_defaults, calendars = load_yaml()
     if not calendars:
@@ -306,11 +416,16 @@ def main() -> None:
         sys.exit(1)
     output_dir = ensure_output_dir()
     tz = pytz.timezone(TIMEZONE)
+    snapshot = fetch_awf_calendar()
+    pending_outputs: Dict[Path, bytes] = {}
     for cfg in calendars:
         name = str(cfg.get("name") or "").strip()
         if not name:
             print(f"Skipping calendar with missing name: {cfg}")
             continue
+        out_path = output_dir / make_filename_from_calendar_name(name)
+        if out_path in pending_outputs:
+            raise ValueError(f"Duplicate calendar name: {name}")
         optional_selected = resolve_optional_selection_for_calendar(
             optional_defaults, cfg.get("optional_subjects")
         )
@@ -321,6 +436,7 @@ def main() -> None:
             legend=legend,
             optional_subjects_list=optional_defaults,
             optional_selected=optional_selected,
+            calendar_bytes=snapshot,
         )
         if not cal_bytes:
             print(f"No output for '{name}'; any existing file is retained.")
@@ -330,13 +446,28 @@ def main() -> None:
             _add_title_color_emojis(
                 cal_obj, legend, cfg.get("title_color_overrides", {})
             )
-        cal_obj.add("X-CALENDAR-UPDATED", datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S"))
+        cal_obj.add(
+            "X-CALENDAR-UPDATED", datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+        )
         cal_obj.add("X-WR-CALNAME", "Plan zajęć.")
-        out_path = output_dir / make_filename_from_calendar_name(name)
-        out_path.write_bytes(cal_obj.to_ical())
+        output_bytes = cal_obj.to_ical()
+        if out_path.exists() and not allow_large_removals:
+            validate_calendar_removals(out_path.read_bytes(), output_bytes)
+        pending_outputs[out_path] = output_bytes
+    # Validate every calendar before replacing any existing output.
+    for out_path, output_bytes in pending_outputs.items():
+        temporary_path = out_path.with_suffix(".ics.tmp")
+        temporary_path.write_bytes(output_bytes)
+        temporary_path.replace(out_path)
         print(f"Wrote calendar to {out_path}")
     print("\nDone.")
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Generate public AWF calendar feeds.")
+    parser.add_argument(
+        "--allow-large-removals",
+        action="store_true",
+        help="Allow reviewed removals exceeding the normal safety limit.",
+    )
+    main(allow_large_removals=parser.parse_args().allow_large_removals)

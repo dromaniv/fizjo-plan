@@ -1,0 +1,5 @@
+# Direct dependencies. Regenerate requirements.txt with the command in README.md.
+requests==2.34.2
+icalendar==7.3.0
+PyYAML==6.0.3
+pytz==2026.6

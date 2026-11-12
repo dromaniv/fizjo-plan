@@ -18,6 +18,8 @@ const GLOBAL_WRITE_LIMIT = 400; // max create/update/delete per run (soft ceilin
 const SLEEP_EVERY_WRITES = 40; // pause every N writes
 const SLEEP_MS = 100; // 100ms pause to smooth bursts
 const MAX_ERRORS_BEFORE_STOP = 12;
+const MAX_ICS_BYTES = 2 * 1024 * 1024;
+const MAX_REMOVAL_FRACTION = 0.25;
 
 // Entry point (set trigger daily at 06:00)
 function ColorEvents() {
@@ -28,10 +30,14 @@ function ColorEvents() {
     return;
   }
 
-  // Fetch + parse feed once
-  let icsText;
+  // Validate the entire feed before any calendar writes.
+  let icsText, vevents;
   try {
     icsText = fetchIcs_(ICS_URL);
+    vevents = parseICS_(icsText);
+    if (!vevents.length) {
+      throw new Error("Empty feed; leaving the calendar unchanged.");
+    }
   } catch (e) {
     Logger.log("Fetch ICS failed: " + e);
     return;
@@ -41,8 +47,6 @@ function ColorEvents() {
   const icsUpdated = readCalendarUpdated_(icsText);
   if (icsUpdated) Logger.log("Feed X-CALENDAR-UPDATED: " + icsUpdated);
 
-  const vevents = parseICS_(icsText); // [{uid,summary,description,location,start,end}]
-
   // Pre-index all feed events in semester range by UID (to support deletes later per month)
   const allFeedByUid = Object.create(null);
   for (let i = 0; i < vevents.length; i++) {
@@ -50,6 +54,37 @@ function ColorEvents() {
     if (ev.start && ev.end && ev.end >= SEM_START && ev.start <= SEM_END) {
       allFeedByUid[ev.uid] = ev;
     }
+  }
+
+  if (!Object.keys(allFeedByUid).length) {
+    Logger.log("No feed events in the configured semester; leaving the calendar unchanged.");
+    return;
+  }
+
+  // Use a semester-wide index for moves between months and deletion safety.
+  const existingByUid = Object.create(null);
+  try {
+    const existing = cal.getEvents(SEM_START, SEM_END);
+    for (const ev of existing) {
+      if (!ev.isOwnedByMe()) continue;
+      const match = /(?:^|\n)ICS-UID:[ \t]*(\S+)[ \t]*\r?$/m.exec(
+        ev.getDescription() || ""
+      );
+      if (!match) continue;
+      if (existingByUid[match[1]]) {
+        throw new Error("Duplicate synced UID: " + match[1]);
+      }
+      existingByUid[match[1]] = ev;
+    }
+  } catch (e) {
+    Logger.log("Cannot safely index existing events: " + e);
+    return;
+  }
+  const existingUids = Object.keys(existingByUid);
+  const missing = existingUids.filter((uid) => !(uid in allFeedByUid));
+  const allowDeletes = missing.length <= existingUids.length * MAX_REMOVAL_FRACTION;
+  if (!allowDeletes) {
+    Logger.log("Large removal detected; deletions disabled for this run.");
   }
 
   // Build semester months; process in an order that spreads writes:
@@ -84,6 +119,8 @@ function ColorEvents() {
         writeBudgetLeft: GLOBAL_WRITE_LIMIT - totalWrites,
         sleepEvery: SLEEP_EVERY_WRITES,
         sleepMs: SLEEP_MS,
+        existingByUid: existingByUid,
+        allowDeletes: allowDeletes,
       },
       icsUpdated
     );
@@ -163,7 +200,7 @@ function syncWindow_(
   limits,
   icsUpdated
 ) {
-  const EXIST_UID_RX = /ICS-UID:\s*(\S+)/;
+  const EXIST_UID_RX = /(?:^|\n)ICS-UID:[ \t]*(\S+)[ \t]*\r?$/m;
 
   // Index feed in window
   const feedByUid = Object.create(null);
@@ -223,7 +260,7 @@ function syncWindow_(
     const color = chooseColor_(src);
 
     try {
-      const existingEv = calByUid[uid];
+      const existingEv = (limits.existingByUid || calByUid)[uid];
       if (existingEv) {
         let changed = false;
 
@@ -293,6 +330,7 @@ function syncWindow_(
           src.end,
           options
         );
+        if (limits.existingByUid) limits.existingByUid[uid] = newEv;
         safeTry_(() => newEv.setColor(color));
         created++;
         writes += 2; // create + color
@@ -316,11 +354,14 @@ function syncWindow_(
   }
 
   // Deletes (only within window)
-  if (!stoppedForQuota && !stoppedForWrites) {
+  if (
+    !stoppedForQuota && !stoppedForWrites && !errors &&
+    limits.allowDeletes !== false
+  ) {
     const calUids = Object.keys(calByUid);
     for (let j = 0; j < calUids.length; j++) {
       const uid = calUids[j];
-      if (!(uid in feedByUid)) {
+      if (!(uid in allFeedByUid)) {
         try {
           calByUid[uid].deleteEvent();
           writes++; // delete is a write
@@ -419,11 +460,16 @@ function getOwnedCalendarByName_(name) {
 }
 
 function fetchIcs_(url) {
-  const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-  if (res.getResponseCode() >= 400) {
-    throw new Error(
-      "Fetch failed: " + res.getResponseCode() + " " + res.getContentText()
-    );
+  if (!/^https:\/\//i.test(url)) throw new Error("Feed URL must use HTTPS.");
+  const res = UrlFetchApp.fetch(url, {
+    muteHttpExceptions: true,
+    followRedirects: false,
+  });
+  if (res.getResponseCode() !== 200) {
+    throw new Error("Fetch failed: HTTP " + res.getResponseCode());
+  }
+  if (res.getBlob().getBytes().length > MAX_ICS_BYTES) {
+    throw new Error("Feed exceeds the size limit.");
   }
   // ICS is UTF-8 (with BOM) from your generator; we read as UTF-8 text
   return res.getContentText("UTF-8");
@@ -442,11 +488,36 @@ function readCalendarUpdated_(icsText) {
 }
 
 function parseICS_(text) {
-  if (!text) return [];
-  // Unfold folded lines: RFC allows CRLF + SP/HT to continue
-  text = text.replace(/\r?\n[ \t]/g, "");
+  if (!text || text.length > MAX_ICS_BYTES) throw new Error("Missing or oversized feed.");
+  text = text.replace(/^\uFEFF/, "").replace(/\r?\n[ \t]/g, "").trim();
+  const lines = text.split(/\r?\n/);
+  if (lines[0] !== "BEGIN:VCALENDAR" || lines[lines.length - 1] !== "END:VCALENDAR") {
+    throw new Error("Expected a complete VCALENDAR document.");
+  }
+  // This parser accepts the generator's flat, non-recurring event format.
+  const stack = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.indexOf("BEGIN:") === 0) {
+      const name = line.slice(6);
+      if (
+        (i === 0 && name === "VCALENDAR") ||
+        (stack.length === 1 && name === "VEVENT")
+      ) {
+        stack.push(name);
+      } else throw new Error("Unexpected nested calendar component.");
+    } else if (line.indexOf("END:") === 0) {
+      if (!stack.length || stack.pop() !== line.slice(4)) {
+        throw new Error("Mismatched component boundaries.");
+      }
+    } else if (!stack.length) throw new Error("Content outside the calendar.");
+  }
+  if (stack.length || !/^VERSION:2\.0\r?$/m.test(text)) {
+    throw new Error("Invalid calendar version or structure.");
+  }
   const out = [];
-  const blocks = text.split(/BEGIN:VEVENT\r?\n/).slice(1);
+  const seen = Object.create(null);
+  const blocks = text.split(/^BEGIN:VEVENT\r?\n/m).slice(1);
   for (var i = 0; i < blocks.length; i++) {
     const raw = blocks[i].split(/END:VEVENT/)[0];
 
@@ -456,6 +527,10 @@ function parseICS_(text) {
         "^" + prop + "(?:;[^:\\r\\n]+)?:([\\s\\S]*?)$",
         "m"
       );
+      const matches = raw.match(
+        new RegExp("^" + prop + "(?:;[^:\\r\\n]+)?:", "gm")
+      ) || [];
+      if (matches.length > 1) throw new Error("Duplicate event property: " + prop);
       const m = rx.exec(raw);
       return m ? m[1].trim() : "";
     }
@@ -466,11 +541,19 @@ function parseICS_(text) {
     const loc = pick("LOCATION");
     const dtS = pick("DTSTART");
     const dtE = pick("DTEND");
-    if (!uid || !dtS || !dtE) continue;
+    if (!uid || /\s/.test(uid) || seen[uid] || !sum || !dtS || !dtE) {
+      throw new Error("Invalid or duplicate event UID, title or dates.");
+    }
+    if (/^(?:RRULE|RDATE|RECURRENCE-ID)(?:;|:)/m.test(raw)) {
+      throw new Error("Recurring events are not supported.");
+    }
+    seen[uid] = true;
 
     const start = parseIcsDate_(dtS);
     const end = parseIcsDate_(dtE);
-    if (!start || !end) continue;
+    if (!start || !end || end <= start) {
+      throw new Error("Invalid event start/end times.");
+    }
 
     out.push({
       uid: uid,
@@ -490,7 +573,9 @@ function parseIcsDate_(val) {
     const y = +val.slice(0, 4),
       m = +val.slice(4, 6) - 1,
       d = +val.slice(6, 8);
-    return new Date(y, m, d, 0, 0, 0);
+    const date = new Date(y, m, d, 0, 0, 0);
+    return date.getFullYear() === y && date.getMonth() === m && date.getDate() === d
+      ? date : null;
   }
   const m = /^(\d{8})T(\d{6})(Z)?$/.exec(val);
   if (!m) return null;
@@ -500,9 +585,13 @@ function parseIcsDate_(val) {
   const hh = +m[2].slice(0, 2),
     mm = +m[2].slice(2, 4),
     ss = +m[2].slice(4, 6);
-  return m[3] === "Z"
+  const date = m[3] === "Z"
     ? new Date(Date.UTC(y, mo, d, hh, mm, ss))
     : new Date(y, mo, d, hh, mm, ss);
+  const get = (field) => date[(m[3] === "Z" ? "getUTC" : "get") + field]();
+  return get("FullYear") === y && get("Month") === mo && get("Date") === d &&
+    get("Hours") === hh && get("Minutes") === mm && get("Seconds") === ss
+    ? date : null;
 }
 
 function decodeText_(s) {
@@ -524,10 +613,9 @@ function decodeText_(s) {
  */
 function buildDescWithMarkers_(userText, uid, stamp, icsUpdated) {
   // Remove any previous metadata block
-  const clean = (userText || "").replace(
-    /\n+--- Metadata ---[\s\S]*$/m,
-    ""
-  );
+  const clean = (userText || "")
+    .replace(/\n+--- Metadata ---[\s\S]*$/m, "")
+    .replace(/^ICS-UID:.*(?:\r?\n|$)/gm, "");
   const lines = [
     clean.trim(),
     "",
